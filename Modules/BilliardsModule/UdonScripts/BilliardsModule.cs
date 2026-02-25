@@ -274,12 +274,15 @@ public class BilliardsModule : UdonSharpBehaviour
     [NonSerialized] public CueController activeCue;
 
     // some udon optimizations
-    [NonSerialized] public bool is8Ball = false;
-    [NonSerialized] public bool is9Ball = false;
-    [NonSerialized] public bool is4Ball = false;
-    [NonSerialized] public bool isJp4Ball = false;
-    [NonSerialized] public bool isKr4Ball = false;
-    [NonSerialized] public bool isSnooker6Red = false;
+    // [NonSerialized] public bool is8Ball = false;
+    // [NonSerialized] public bool is9Ball = false;
+    // [NonSerialized] public bool is4Ball = false;
+    // [NonSerialized] public bool isJp4Ball = false;
+    // [NonSerialized] public bool isKr4Ball = false;
+    // [NonSerialized] public bool isSnooker6Red = false;
+    [NonSerialized] public bool isSuika12 = false;
+    [NonSerialized] public bool isSuikaPool = false;
+    [NonSerialized] public bool isPocketBlocked = false;
     [NonSerialized] public bool isPracticeMode = false;
     [NonSerialized] public bool isPlayer = false;
     [NonSerialized] public bool isOrangeTeamFull = false;
@@ -477,13 +480,13 @@ public class BilliardsModule : UdonSharpBehaviour
 
         _TriggerCueDeactivate();
 
-        if (foulStateLocal == 5)//free ball
-        {
-            if (SixRedCheckObjBlocked(ballsPocketedLocal, colorTurnLocal, true) > 0)
-            {
-                _LogInfo("6RED: Free ball turn. First hit ball is counted as current objective ball.");
-            }
-        }
+        // if (foulStateLocal == 5)//free ball
+        // {
+        //     if (SixRedCheckObjBlocked(ballsPocketedLocal, colorTurnLocal, true) > 0)
+        //     {
+        //         _LogInfo("6RED: Free ball turn. First hit ball is counted as current objective ball.");
+        //     }
+        // }
 
         networkingManager._OnHitBall(ballsV[0], ballsW[0]);
     }
@@ -828,12 +831,15 @@ public class BilliardsModule : UdonSharpBehaviour
         {
             gameModeLocal = gameModeSynced;
 
-            is8Ball = gameModeLocal == 0u;
-            is9Ball = gameModeLocal == 1u;
-            isJp4Ball = gameModeLocal == 2u;
-            isKr4Ball = gameModeLocal == 3u;
-            isSnooker6Red = gameModeLocal == 4u;
-            is4Ball = isJp4Ball || isKr4Ball;
+            // is8Ball = gameModeLocal == 0u;
+            // is9Ball = gameModeLocal == 1u;
+            // isJp4Ball = gameModeLocal == 2u;
+            // isKr4Ball = gameModeLocal == 3u;
+            // isSnooker6Red = gameModeLocal == 4u;
+			isSuika12 = gameModeLocal == 64u;
+			isSuikaPool = gameModeLocal == 65u;
+            // is4Ball = isJp4Ball || isKr4Ball;
+
 
             menuManager._RefreshGameMode();
         }
@@ -1006,8 +1012,8 @@ public class BilliardsModule : UdonSharpBehaviour
         for (int i = 0; i < cueControllers.Length; i++) cueControllers[i]._RefreshRenderer();
 
         Array.Clear(fbScoresLocal, 0, 2);
-        auto_pocketblockers.SetActive(is4Ball);
-        marker9ball.SetActive(is9Ball);
+        auto_pocketblockers.SetActive(true); //is4Ball);
+        marker9ball.SetActive(isSuika12); //is9Ball);
 
         // Reflect game state
         graphicsManager._UpdateScorecard();
@@ -1129,25 +1135,25 @@ public class BilliardsModule : UdonSharpBehaviour
         activeCue = cueControllers[isPracticeMode ? 0 : (int)teamIdLocal];
     }
 
-    private void onRemoteFourBallCueBallChanged(uint fourBallCueBallSynced)
-    {
-        if (!gameLive) return;
+    // private void onRemoteFourBallCueBallChanged(uint fourBallCueBallSynced)
+    // {
+    //     if (!gameLive) return;
 
-        if (fourBallCueBallLocal != fourBallCueBallSynced)
-        {
-            _LogInfo($"onRemoteFourBallCueBallChanged cueBall={fourBallCueBallSynced}");
-        }
+    //     if (fourBallCueBallLocal != fourBallCueBallSynced)
+    //     {
+    //         _LogInfo($"onRemoteFourBallCueBallChanged cueBall={fourBallCueBallSynced}");
+    //     }
 
-        if (isSnooker6Red)//reusing this variable for the number of fouls/repeated shots in a row in snooker
-        {
-            fourBallCueBallLocal = fourBallCueBallSynced;
-        }
-        if (!is4Ball) return;
+    //     if (isSnooker6Red)//reusing this variable for the number of fouls/repeated shots in a row in snooker
+    //     {
+    //         fourBallCueBallLocal = fourBallCueBallSynced;
+    //     }
+    //     if (!is4Ball) return;
 
-        fourBallCueBallLocal = fourBallCueBallSynced;
+    //     fourBallCueBallLocal = fourBallCueBallSynced;
 
-        graphicsManager._UpdateFourBallCueBallTextures(fourBallCueBallLocal);
-    }
+    //     graphicsManager._UpdateFourBallCueBallTextures(fourBallCueBallLocal);
+    // }
 
     private void onRemoteIsTableOpenChanged(bool isTableOpenSynced, uint teamColorSynced)
     {
@@ -1191,17 +1197,17 @@ public class BilliardsModule : UdonSharpBehaviour
 
         foulStateLocal = foulStateSynced;
         bool myTurn = isMyTurn();
-        if (isSnooker6Red)//enable SnookerUndo button if foul
-        {
-            if (fourBallCueBallLocal > 0 && foulStateLocal > 0 && foulStateLocal != 6 && myTurn && networkingManager.turnStateSynced != 1)
-            {
-                menuManager._EnableSnookerUndoMenu();
-            }
-            else
-            {
-                menuManager._DisableSnookerUndoMenu();
-            }
-        }
+        // if (isSnooker6Red)//enable SnookerUndo button if foul
+        // {
+        //     if (fourBallCueBallLocal > 0 && foulStateLocal > 0 && foulStateLocal != 6 && myTurn && networkingManager.turnStateSynced != 1)
+        //     {
+        //         menuManager._EnableSnookerUndoMenu();
+        //     }
+        //     else
+        //     {
+        //         menuManager._DisableSnookerUndoMenu();
+        //     }
+        // }
 
         if (!myTurn || foulStateLocal == 0)
         {
@@ -1379,7 +1385,7 @@ public class BilliardsModule : UdonSharpBehaviour
                     if (dstId != firstHit)
                     {
                         secondHit = dstId;
-                        handle4BallHit(ballsP[dstId], true);
+                        //handle4BallHit(ballsP[dstId], true);
                     }
                     break;
                 }
@@ -1388,7 +1394,7 @@ public class BilliardsModule : UdonSharpBehaviour
                     if (dstId != firstHit && dstId != secondHit)
                     {
                         thirdHit = dstId;
-                        handle4BallHit(ballsP[dstId], true);
+                        //handle4BallHit(ballsP[dstId], true);
                     }
                     break;
                 }
@@ -1396,7 +1402,7 @@ public class BilliardsModule : UdonSharpBehaviour
             case 3:
                 if (dstId == 13)
                 {
-                    handle4BallHit(ballsP[dstId], false);
+                    //handle4BallHit(ballsP[dstId], false);
                     break;
                 }
                 if (firstHit == 0)
@@ -1409,7 +1415,7 @@ public class BilliardsModule : UdonSharpBehaviour
                     if (dstId != firstHit)
                     {
                         secondHit = dstId;
-                        handle4BallHit(ballsP[dstId], true);
+                        //handle4BallHit(ballsP[dstId], true);
                     }
                     break;
                 }

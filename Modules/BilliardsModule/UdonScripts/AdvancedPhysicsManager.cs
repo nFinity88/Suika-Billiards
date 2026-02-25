@@ -498,33 +498,33 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
             }
         }
 
-        if (is4Ball) return;
+        // if (is4Ball) return;
 
-        if (table.isSnooker6Red)
-        {
-            if (!cueBallHasCollided && balls_P[0].y > 0)
-            {
-                ball_bit = 0x1U;
-                Vector2 cueBallPos = new Vector2(balls_P[0].x, balls_P[0].z);
-                bool flewOverThisFrame = false;
-                for (int i = 1; i < 16; i++)
-                {
-                    ball_bit <<= 1;
-                    if ((ball_bit & sn_pocketed) > 0U) continue; //skip checking pocketed balls
-                    Vector2 compareBallPos = new Vector2(balls_P[i].x, balls_P[i].z);
-                    if (Vector2.Distance(cueBallPos, compareBallPos) < k_BALL_DIAMETRE)
-                    {
-                        jumpShotFlewOver = true;
-                        flewOverThisFrame = true;
-                    }
-                }
-                if (jumpShotFlewOver && !flewOverThisFrame)
-                {
-                    table_._TriggerJumpShotFoul();
-                    jumpShotFlewOver = false;//prevent this from being called again
-                }
-            }
-        }
+        // if (table.isSnooker6Red)
+        // {
+        //     if (!cueBallHasCollided && balls_P[0].y > 0)
+        //     {
+        //         ball_bit = 0x1U;
+        //         Vector2 cueBallPos = new Vector2(balls_P[0].x, balls_P[0].z);
+        //         bool flewOverThisFrame = false;
+        //         for (int i = 1; i < 16; i++)
+        //         {
+        //             ball_bit <<= 1;
+        //             if ((ball_bit & sn_pocketed) > 0U) continue; //skip checking pocketed balls
+        //             Vector2 compareBallPos = new Vector2(balls_P[i].x, balls_P[i].z);
+        //             if (Vector2.Distance(cueBallPos, compareBallPos) < k_BALL_DIAMETRE)
+        //             {
+        //                 jumpShotFlewOver = true;
+        //                 flewOverThisFrame = true;
+        //             }
+        //         }
+        //         if (jumpShotFlewOver && !flewOverThisFrame)
+        //         {
+        //             table_._TriggerJumpShotFoul();
+        //             jumpShotFlewOver = false;//prevent this from being called again
+        //         }
+        //     }
+        // }
     }
 
     // ( Since v0.2.0a ) Check if we can predict a collision before move update happens to improve accuracy
@@ -920,31 +920,31 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
                 float dot = Vector3.Dot(velocityDelta, normal);
                 g_ball_current.GetComponent<AudioSource>().PlayOneShot(hitSounds[id % 3], Mathf.Clamp01(dot));
 
-                if (table_.isSnooker6Red)
-                {
-                    if (!cueBallHasCollided && id == 0 && balls_P[0].y > 0)
-                    {
-                        // In snooker it's a foul if the cue ball jumps over the object ball even if it hits it in the process
-                        // check if cue ball is moving faster in the direction of the movement of the object ball to determine if it's going to go over it.
-                        // there may be unknown problems with this implementation.
-                        Vector3 ballid = balls_V[id]; ballid.y = 0;
-                        Vector3 balli = balls_V[checkBall]; balli.y = 0;
-                        ballid *= ballid.magnitude / balli.magnitude;
-                        balli = balli.normalized;
-                        float velDot = Vector3.Dot(ballid, balli);
+                // if (table_.isSnooker6Red)
+                // {
+                //     if (!cueBallHasCollided && id == 0 && balls_P[0].y > 0)
+                //     {
+                //         // In snooker it's a foul if the cue ball jumps over the object ball even if it hits it in the process
+                //         // check if cue ball is moving faster in the direction of the movement of the object ball to determine if it's going to go over it.
+                //         // there may be unknown problems with this implementation.
+                //         Vector3 ballid = balls_V[id]; ballid.y = 0;
+                //         Vector3 balli = balls_V[checkBall]; balli.y = 0;
+                //         ballid *= ballid.magnitude / balli.magnitude;
+                //         balli = balli.normalized;
+                //         float velDot = Vector3.Dot(ballid, balli);
 
-                        // detect if ball landed on top of the far side of the ball, which means by definition you went over it (this case is not covered by the velDot check)
-                        Vector3 flattenedCueBallVelPrev = cueBallVelPrev;
-                        flattenedCueBallVelPrev.y = 0;
-                        bool dotBehind = Vector3.Dot(flattenedCueBallVelPrev, delta) < 0;
+                //         // detect if ball landed on top of the far side of the ball, which means by definition you went over it (this case is not covered by the velDot check)
+                //         Vector3 flattenedCueBallVelPrev = cueBallVelPrev;
+                //         flattenedCueBallVelPrev.y = 0;
+                //         bool dotBehind = Vector3.Dot(flattenedCueBallVelPrev, delta) < 0;
 
-                        if (velDot > 1 || dotBehind)
-                        {
-                            table_._TriggerJumpShotFoul();
-                        }
-                        cueBallHasCollided = true;
-                    }
-                }
+                //         if (velDot > 1 || dotBehind)
+                //         {
+                //             table_._TriggerJumpShotFoul();
+                //         }
+                //         cueBallHasCollided = true;
+                //     }
+                // }
                 table._TriggerCollision(id, checkBall);
             }
         }
@@ -2497,84 +2497,84 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
         Vector3 A = balls_P[id];
         Vector3 absA = new Vector3(Mathf.Abs(A.x), 0, Mathf.Abs(A.z));
 
-        if (!is4ball)
-        {
-            if ((absA - k_vE).sqrMagnitude < k_INNER_RADIUS_CORNER_SQ && (absA - k_vE2).sqrMagnitude < k_INNER_RADIUS_CORNER_SQ2)
-            {
-                inPocketBounds = true;
-                if (A.y < -k_BALL_RADIUS)
-                {
-                    table._TriggerPocketBall(id, false);
-                    pocketedTime = Time.time;
-                    return true;
-                }
-                else if (A.y < 0.001f)
-                {
-                    // while falling down the pocket, check for collisions with the pocket entrance edge
-                    _sign_pos.x = Mathf.Sign(A.x);
-                    _sign_pos.z = Mathf.Sign(A.z);
-                    Vector3 pocketPoint;
-                    float radius;
-                    if (closest_vE)
-                    {
-                        pocketPoint = k_vE2;
-                        radius = k_INNER_RADIUS_CORNER2;
-                    }
-                    else
-                    {
-                        pocketPoint = k_vE;
-                        radius = k_INNER_RADIUS_CORNER;
-                    }
-                    Vector3 railDir = absA - pocketPoint;
-                    railDir.y = 0;
-                    if (Vector3.Dot(absA, railDir) < 0)
-                    {
-                        railPoint = pocketPoint + railDir.normalized * radius;
-                        railPoint = Vector3.Scale(railPoint, _sign_pos);
-                        railPoint.y = Mathf.Min(-k_BALL_RADIUS, A.y);
-                        transitionCollision(id, ref balls_V[id]);
-                    }
-                }
-            }
+        // if (!is4ball)
+        // {
+        //     if ((absA - k_vE).sqrMagnitude < k_INNER_RADIUS_CORNER_SQ && (absA - k_vE2).sqrMagnitude < k_INNER_RADIUS_CORNER_SQ2)
+        //     {
+        //         inPocketBounds = true;
+        //         if (A.y < -k_BALL_RADIUS)
+        //         {
+        //             table._TriggerPocketBall(id, false);
+        //             pocketedTime = Time.time;
+        //             return true;
+        //         }
+        //         else if (A.y < 0.001f)
+        //         {
+        //             // while falling down the pocket, check for collisions with the pocket entrance edge
+        //             _sign_pos.x = Mathf.Sign(A.x);
+        //             _sign_pos.z = Mathf.Sign(A.z);
+        //             Vector3 pocketPoint;
+        //             float radius;
+        //             if (closest_vE)
+        //             {
+        //                 pocketPoint = k_vE2;
+        //                 radius = k_INNER_RADIUS_CORNER2;
+        //             }
+        //             else
+        //             {
+        //                 pocketPoint = k_vE;
+        //                 radius = k_INNER_RADIUS_CORNER;
+        //             }
+        //             Vector3 railDir = absA - pocketPoint;
+        //             railDir.y = 0;
+        //             if (Vector3.Dot(absA, railDir) < 0)
+        //             {
+        //                 railPoint = pocketPoint + railDir.normalized * radius;
+        //                 railPoint = Vector3.Scale(railPoint, _sign_pos);
+        //                 railPoint.y = Mathf.Min(-k_BALL_RADIUS, A.y);
+        //                 transitionCollision(id, ref balls_V[id]);
+        //             }
+        //         }
+        //     }
 
-            if ((absA - k_vF).sqrMagnitude < k_INNER_RADIUS_SIDE_SQ && (absA - k_vF2).sqrMagnitude < k_INNER_RADIUS_SIDE_SQ2)
-            {
-                inPocketBounds = true;
-                if (A.y < -k_BALL_RADIUS)
-                {
-                    table._TriggerPocketBall(id, false);
-                    pocketedTime = Time.time;
-                    return true;
-                }
-                else if (A.y < 0.001f)
-                {
-                    _sign_pos.x = Mathf.Sign(A.x);
-                    _sign_pos.z = Mathf.Sign(A.z);
-                    Vector3 pocketPoint;
-                    float radius;
-                    if (closest_vF)
-                    {
-                        pocketPoint = k_vF2;
-                        radius = k_INNER_RADIUS_SIDE2;
-                    }
-                    else
-                    {
-                        pocketPoint = k_vF;
-                        radius = k_INNER_RADIUS_SIDE;
-                    }
-                    Vector3 railDir = absA - pocketPoint;
-                    railDir.y = 0;
-                    if (Vector3.Dot(absA, railDir) < 0) // only collide with pocket entrance
-                    {
-                        railPoint = pocketPoint + railDir.normalized * radius;
-                        railPoint = Vector3.Scale(railPoint, _sign_pos);
-                        railPoint.y = Mathf.Min(-k_BALL_RADIUS, A.y);
-                        transitionCollision(id, ref balls_V[id]);
-                    }
-                }
-            }
+        //     if ((absA - k_vF).sqrMagnitude < k_INNER_RADIUS_SIDE_SQ && (absA - k_vF2).sqrMagnitude < k_INNER_RADIUS_SIDE_SQ2)
+        //     {
+        //         inPocketBounds = true;
+        //         if (A.y < -k_BALL_RADIUS)
+        //         {
+        //             table._TriggerPocketBall(id, false);
+        //             pocketedTime = Time.time;
+        //             return true;
+        //         }
+        //         else if (A.y < 0.001f)
+        //         {
+        //             _sign_pos.x = Mathf.Sign(A.x);
+        //             _sign_pos.z = Mathf.Sign(A.z);
+        //             Vector3 pocketPoint;
+        //             float radius;
+        //             if (closest_vF)
+        //             {
+        //                 pocketPoint = k_vF2;
+        //                 radius = k_INNER_RADIUS_SIDE2;
+        //             }
+        //             else
+        //             {
+        //                 pocketPoint = k_vF;
+        //                 radius = k_INNER_RADIUS_SIDE;
+        //             }
+        //             Vector3 railDir = absA - pocketPoint;
+        //             railDir.y = 0;
+        //             if (Vector3.Dot(absA, railDir) < 0) // only collide with pocket entrance
+        //             {
+        //                 railPoint = pocketPoint + railDir.normalized * radius;
+        //                 railPoint = Vector3.Scale(railPoint, _sign_pos);
+        //                 railPoint.y = Mathf.Min(-k_BALL_RADIUS, A.y);
+        //                 transitionCollision(id, ref balls_V[id]);
+        //             }
+        //         }
+        //     }
 
-        }
+        // }
 
         if (absA.z > tableEdge.y)
         {

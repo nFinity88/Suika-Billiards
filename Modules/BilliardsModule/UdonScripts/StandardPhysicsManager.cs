@@ -9,7 +9,7 @@ public class StandardPhysicsManager : UdonSharpBehaviour
 {
     public string PHYSICSNAME = "<color=#678AC2>Standard</color>";
 #if HT_QUEST
-   private  float k_MAX_DELTA =  k_FIXED_TIME_STEP * 2; // Private Const Float 0.05f max time to process per frame on quest (~4)
+    private float k_MAX_DELTA = k_FIXED_TIME_STEP * 2; // Private Const Float 0.05f max time to process per frame on quest (~4)
 #else
     private float k_MAX_DELTA = k_FIXED_TIME_STEP * 6; // Private Cont Float 0.1f max time to process per frame on pc (~8)
 #endif
@@ -400,31 +400,31 @@ public class StandardPhysicsManager : UdonSharpBehaviour
 
         if (table.is4Ball) return;
 
-        if (table.isSnooker6Red)
-        {
-            if (!cueBallHasCollided && balls_P[0].y > 0)
-            {
-                ball_bit = 0x1U;
-                Vector2 cueBallPos = new Vector2(balls_P[0].x, balls_P[0].z);
-                bool flewOverThisFrame = false;
-                for (int i = 1; i < 16; i++)
-                {
-                    ball_bit <<= 1;
-                    if ((ball_bit & sn_pocketed) > 0U) continue; //skip checking pocketed balls
-                    Vector2 compareBallPos = new Vector2(balls_P[i].x, balls_P[i].z);
-                    if (Vector2.Distance(cueBallPos, compareBallPos) < k_BALL_DIAMETRE)
-                    {
-                        jumpShotFlewOver = true;
-                        flewOverThisFrame = true;
-                    }
-                }
-                if (jumpShotFlewOver && !flewOverThisFrame)
-                {
-                    table_._TriggerJumpShotFoul();
-                    jumpShotFlewOver = false;//prevent this from being called again
-                }
-            }
-        }
+        // if (table.isSnooker6Red)
+        // {
+        //     if (!cueBallHasCollided && balls_P[0].y > 0)
+        //     {
+        //         ball_bit = 0x1U;
+        //         Vector2 cueBallPos = new Vector2(balls_P[0].x, balls_P[0].z);
+        //         bool flewOverThisFrame = false;
+        //         for (int i = 1; i < 16; i++)
+        //         {
+        //             ball_bit <<= 1;
+        //             if ((ball_bit & sn_pocketed) > 0U) continue; //skip checking pocketed balls
+        //             Vector2 compareBallPos = new Vector2(balls_P[i].x, balls_P[i].z);
+        //             if (Vector2.Distance(cueBallPos, compareBallPos) < k_BALL_DIAMETRE)
+        //             {
+        //                 jumpShotFlewOver = true;
+        //                 flewOverThisFrame = true;
+        //             }
+        //         }
+        //         if (jumpShotFlewOver && !flewOverThisFrame)
+        //         {
+        //             table_._TriggerJumpShotFoul();
+        //             jumpShotFlewOver = false;//prevent this from being called again
+        //         }
+        //     }
+        // }
 
         ball_bit = 0x1U;
 
@@ -562,31 +562,31 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                 {
                     g_ball_current.GetComponent<AudioSource>().PlayOneShot(hitSounds[id % 3], Mathf.Clamp01(dot));
                 }
-                if (table_.isSnooker6Red)
-                {
-                    if (!cueBallHasCollided && id == 0 && balls_P[0].y > 0)
-                    {
-                        // In snooker it's a foul if the cue ball jumps over the object ball even if it hits it in the process
-                        // check if cue ball is moving faster in the direction of the movement of the object ball to determine if it's going to go over it.
-                        // there may be unknown problems with this implementation.
-                        Vector3 ballid = balls_V[id]; ballid.y = 0;
-                        Vector3 balli = balls_V[i]; balli.y = 0;
-                        ballid *= ballid.magnitude / balli.magnitude;
-                        balli = balli.normalized;
-                        float velDot = Vector3.Dot(ballid, balli);
+                // if (table_.isSnooker6Red)
+                // {
+                //     if (!cueBallHasCollided && id == 0 && balls_P[0].y > 0)
+                //     {
+                //         // In snooker it's a foul if the cue ball jumps over the object ball even if it hits it in the process
+                //         // check if cue ball is moving faster in the direction of the movement of the object ball to determine if it's going to go over it.
+                //         // there may be unknown problems with this implementation.
+                //         Vector3 ballid = balls_V[id]; ballid.y = 0;
+                //         Vector3 balli = balls_V[i]; balli.y = 0;
+                //         ballid *= ballid.magnitude / balli.magnitude;
+                //         balli = balli.normalized;
+                //         float velDot = Vector3.Dot(ballid, balli);
 
-                        // detect if ball landed on top of the far side of the ball, which means by definition you went over it (this case is not covered by the velDot check)
-                        Vector3 flattenedCueBallVelPrev = cueBallVelPrev;
-                        flattenedCueBallVelPrev.y = 0;
-                        bool dotBehind = Vector3.Dot(flattenedCueBallVelPrev, delta) < 0;
+                //         // detect if ball landed on top of the far side of the ball, which means by definition you went over it (this case is not covered by the velDot check)
+                //         Vector3 flattenedCueBallVelPrev = cueBallVelPrev;
+                //         flattenedCueBallVelPrev.y = 0;
+                //         bool dotBehind = Vector3.Dot(flattenedCueBallVelPrev, delta) < 0;
 
-                        if (velDot > 1 || dotBehind)
-                        {
-                            table_._TriggerJumpShotFoul();
-                        }
-                        cueBallHasCollided = true;
-                    }
-                }
+                //         if (velDot > 1 || dotBehind)
+                //         {
+                //             table_._TriggerJumpShotFoul();
+                //         }
+                //         cueBallHasCollided = true;
+                //     }
+                // }
                 table._TriggerCollision(id, i);
             }
         }
