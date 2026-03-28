@@ -626,34 +626,23 @@ int uniform_cue_colour;
 
     public void _ShowBalls()
     {
-        if (table.is9Ball)
+        int numBalls = table.balls.Length;
+        if (table.isSuikaPool)
         {
-            for (int i = 0; i <= 9; i++)
-                table.balls[i].SetActive(true);
-
-            for (int i = 10; i < 16; i++)
+            // uh... need to change this to account for more than 16 balls
+            for (int i = 0; i < numBalls; i++)
                 table.balls[i].SetActive(false);
         }
-        else if (table.is4Ball)
+        else if (table.isSuika12)
         {
-            for (int i = 1; i < 16; i++)
-                table.balls[i].SetActive(false);
-
-            table.balls[0].SetActive(true);
-            table.balls[13].SetActive(true);
-            table.balls[14].SetActive(true);
-            table.balls[15].SetActive(true);
-        }
-        else if (table.isSnooker6Red)
-        {
-            for (int i = 0; i < 13; i++)
+            for (int i = 0; i <= 12; i++)
                 table.balls[i].SetActive(true);
-            for (int i = 13; i < 16; i++)
+            for (int i = 13; i < numBalls; i++)
                 table.balls[i].SetActive(false);
         }
         else
         {
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < numBalls; i++)
             {
                 table.balls[i].SetActive(true);
             }
@@ -721,48 +710,57 @@ int uniform_cue_colour;
 
     public void _UpdateTableColorScheme()
     {
-        if (table.is9Ball)  // 9 Ball / USA colours
-        {
-            pColour0 = table.k_colour_default;
-            pColour1 = table.k_colour_default;
-            pColour2 = table.k_colour_default;
+        // Suika uses a common colour set based off 9 ball colours
+        pColour0 = table.k_colour_default;
+        pColour1 = table.k_colour_default;
+        pColour2 = table.k_colour_default;
 
-            pColourErr = table.k_colour_foul;
+        pColourErr = table.k_colour_foul;
 
-            // 9 ball only uses one colourset / cloth colour
-            ballMaterial.SetTexture("_MainTex", table.textureSets[1]);
-        }
-        else if (table.is4Ball)
-        {
-            pColour0 = table.k_colour4Ball_team_0;
-            pColour1 = table.k_colour4Ball_team_1;
+        ballMaterial.SetTexture("_MainTex", table.textureSets[1]);
 
-            // Should not be used
-            pColour2 = table.k_colour_foul;
-            pColourErr = table.k_colour_foul;
+        // if (table.is9Ball)  // 9 Ball / USA colours
+        // {
+        //     pColour0 = table.k_colour_default;
+        //     pColour1 = table.k_colour_default;
+        //     pColour2 = table.k_colour_default;
 
-            ballMaterial.SetTexture("_MainTex", table.textureSets[1]);
-        }
-        else if (table.isSnooker6Red)
-        {
-            pColourErr = table.k_colour_foul;
-            pColour2 = table.k_colour_default;
+        //     pColourErr = table.k_colour_foul;
 
-            pColour0 = table.k_snookerTeamColour_0;
-            pColour1 = table.k_snookerTeamColour_1;
+        //     // 9 ball only uses one colourset / cloth colour
+        //     ballMaterial.SetTexture("_MainTex", table.textureSets[1]);
+        // }
+        // else if (table.is4Ball)
+        // {
+        //     pColour0 = table.k_colour4Ball_team_0;
+        //     pColour1 = table.k_colour4Ball_team_1;
 
-            ballMaterial.SetTexture("_MainTex", table.textureSets[2]);
-        }
-        else // Standard 8 ball derivatives
-        {
-            pColourErr = table.k_colour_foul;
-            pColour2 = table.k_colour_default;
+        //     // Should not be used
+        //     pColour2 = table.k_colour_foul;
+        //     pColourErr = table.k_colour_foul;
 
-            pColour0 = table.k_teamColour_spots;
-            pColour1 = table.k_teamColour_stripes;
+        //     ballMaterial.SetTexture("_MainTex", table.textureSets[1]);
+        // }
+        // else if (table.isSnooker6Red)
+        // {
+        //     pColourErr = table.k_colour_foul;
+        //     pColour2 = table.k_colour_default;
 
-            ballMaterial.SetTexture("_MainTex", usColors ? usColorTexture : table.textureSets[0]);
-        }
+        //     pColour0 = table.k_snookerTeamColour_0;
+        //     pColour1 = table.k_snookerTeamColour_1;
+
+        //     ballMaterial.SetTexture("_MainTex", table.textureSets[2]);
+        // }
+        // else // Standard 8 ball derivatives
+        // {
+        //     pColourErr = table.k_colour_foul;
+        //     pColour2 = table.k_colour_default;
+
+        //     pColour0 = table.k_teamColour_spots;
+        //     pColour1 = table.k_teamColour_stripes;
+
+        //     ballMaterial.SetTexture("_MainTex", usColors ? usColorTexture : table.textureSets[0]);
+        // }
     }
 
     public void _DisableObjects()
