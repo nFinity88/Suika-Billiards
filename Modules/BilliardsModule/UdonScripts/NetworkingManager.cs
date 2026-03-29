@@ -247,10 +247,6 @@ public class NetworkingManager : UdonSharpBehaviour
         foulStateSynced = 0;
         timerStartSynced = Networking.GetServerTimeInMilliseconds();
         swapFourBallCueBalls();
-        if (table.isSnooker6Red)
-        {
-            fourBallCueBallSynced = 0;
-        }
 
         bufferMessages(false);
     }
@@ -275,39 +271,12 @@ public class NetworkingManager : UdonSharpBehaviour
         teamIdSynced = (byte)teamId;
         turnStateSynced = 2;
         timerStartSynced = Networking.GetServerTimeInMilliseconds();
-        if (!table.isSnooker6Red)
+        if (objBlocked)
         {
-            if (objBlocked)
-            {
-                foulStateSynced = 1;
-            }
-            else
-                foulStateSynced = 2;
+            foulStateSynced = 1;
         }
         else
-        {
-            if (Scratch)
-            {
-                foulStateSynced = 3;
-            }
-            else if (objBlocked)
-            {
-                foulStateSynced = 5;
-            }
-            else
-            {
-                foulStateSynced = 4;
-            }
-
-            if (fourBallCueBallSynced > 3)//reused variable to track number of fouls/repeated shots
-            {
-                fourBallCueBallSynced = 0;//at the limit, 4, we set it to 0 to prevent the SnookerUndo button from appearing again
-            }
-            else
-            {
-                fourBallCueBallSynced++;
-            }
-        }
+            foulStateSynced = 2;
         swapFourBallCueBalls();
 
         bufferMessages(false);
@@ -391,22 +360,8 @@ public class NetworkingManager : UdonSharpBehaviour
         gameStateSynced = 2;
         ballsPocketedSynced = (ushort)defaultBallsPocketed;
         //reposition state
-        if (table.isSnooker6Red)
-        {
-            foulStateSynced = 3;
-        }
-        else
-        {
-            foulStateSynced = 1;
-        }
-        if (table.is8Ball || table.is9Ball)
-        {
-            colorTurnSynced = true;// re-used to track if it's the break
-        }
-        else
-        {
-            colorTurnSynced = false;
-        }
+        foulStateSynced = 1;
+        colorTurnSynced = table.isSuikaPool || table.isSuika12;
         turnStateSynced = 0;
         isTableOpenSynced = true;
         teamIdSynced = 0;

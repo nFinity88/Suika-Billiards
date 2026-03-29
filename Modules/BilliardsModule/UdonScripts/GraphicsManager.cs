@@ -8,14 +8,14 @@ using System.Data;
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class GraphicsManager : UdonSharpBehaviour
 {
-    [Header("4 Ball")]
-    [SerializeField] GameObject fourBallPoint;
-    [SerializeField] Mesh fourBallMeshPlus;
-    [SerializeField] Mesh fourBallMeshMinus;
-    [Header("Snooker")]
-    [SerializeField] TextMeshProUGUI blueScore;
-    [SerializeField] TextMeshProUGUI orangeScore;
-    [SerializeField] TextMeshProUGUI snookerInstruction;
+    // [Header("4 Ball")]
+    // [SerializeField] GameObject fourBallPoint;
+    // [SerializeField] Mesh fourBallMeshPlus;
+    // [SerializeField] Mesh fourBallMeshMinus;
+    // [Header("Snooker")]
+    // [SerializeField] TextMeshProUGUI blueScore;
+    // [SerializeField] TextMeshProUGUI orangeScore;
+    // [SerializeField] TextMeshProUGUI snookerInstruction;
 
     [Header("Text")]
     [SerializeField] TextMeshProUGUI[] playerNames;
@@ -28,10 +28,10 @@ public class GraphicsManager : UdonSharpBehaviour
     [SerializeField] MeshRenderer[] cuePrimaryGripRenderers;
     [SerializeField] MeshRenderer[] cueSecondaryGripRenderers;
 
-    [Header("Textures")]
-    [SerializeField] bool usColors = true;
-    [SerializeField] Texture usColorTexture;
-    [SerializeField] Color[] usColorArr;
+    // [Header("Textures")]
+    // [SerializeField] bool usColors = true;
+    // [SerializeField] Texture usColorTexture;
+    // [SerializeField] Color[] usColorArr;
 
     [SerializeField] GameObject[] timers;
 
@@ -130,7 +130,6 @@ public class GraphicsManager : UdonSharpBehaviour
     public void _Tick()
     {
         tickBallPositions();
-        tickFourBallPoint();
         tickIntroAnimation();
         tickTableColor();
         tickWinner();
@@ -150,38 +149,6 @@ public class GraphicsManager : UdonSharpBehaviour
             }
 
             ball_bit <<= 1;
-        }
-    }
-
-    private void tickFourBallPoint()
-    {
-        if (!fourBallPointActive) return;
-
-        // Evaluate time
-        fourBallPointTime += Time.deltaTime * 0.25f;
-
-        // Sustained step
-        float s = Mathf.Max(fourBallPointTime - 0.1f, 0.0f);
-        float v = Mathf.Min(fourBallPointTime * fourBallPointTime * 100.0f, 21.0f * s * Mathf.Exp(-15.0f * s));
-
-        // Exponential step
-        float e = Mathf.Exp(-17.0f * Mathf.Pow(Mathf.Max(fourBallPointTime - 1.2f, 0.0f), 3.0f));
-
-        float scale = e * v * 2.0f;
-
-        // Set scale
-        fourBallPoint.transform.localScale = new Vector3(scale, scale, scale);
-
-        // Set position
-        Vector3 temp = fourBallPoint.transform.localPosition;
-        temp.y = fourBallPointTime * 0.5f;
-        fourBallPoint.transform.localPosition = temp;
-
-        // Particle death
-        if (fourBallPointTime > 2.0f)
-        {
-            fourBallPointActive = false;
-            fourBallPoint.SetActive(false);
         }
     }
 
@@ -391,18 +358,6 @@ public class GraphicsManager : UdonSharpBehaviour
         introAnimationTime = 2.0f;
     }
 
-    public void _SpawnFourBallPoint(Vector3 pos, bool plus)
-    {
-        fourBallPoint.SetActive(true);
-        fourBallPointActive = true;
-        fourBallPointTime = 0.1f;
-
-        fourBallPoint.GetComponent<MeshFilter>().sharedMesh = plus ? fourBallMeshPlus : fourBallMeshMinus;
-        fourBallPoint.transform.localPosition = pos;
-        fourBallPoint.transform.localScale = Vector3.zero;
-        fourBallPoint.transform.LookAt(Networking.LocalPlayer.GetPosition());
-    }
-
     public void _FlashTableLight()
     {
         tableCurrentColour *= 1.9f;
@@ -463,7 +418,7 @@ int uniform_cue_colour;
         }
     }
 
-    private void updateNineBallCues()
+    private void updateSuika12Cues()
     {
         if (table.isPracticeMode)
         {
@@ -476,7 +431,7 @@ int uniform_cue_colour;
         }
     }
 
-    private void updateEightBallCues(uint teamId)
+    private void updateSuikaPoolCues(uint teamId)
     {
         if (table.isPracticeMode)
         {
@@ -506,9 +461,8 @@ int uniform_cue_colour;
 
     private void updateCues(uint idsrc)
     {
-        if (table.is4Ball) updateFourBallCues();
-        else if (table.is9Ball) updateNineBallCues();
-        else if (table.is8Ball) updateEightBallCues(idsrc);
+        if (table.isSuika12) updateSuika12Cues();
+        else if (table.isSuikaPool) updateSuikaPoolCues(idsrc);
 
         if (table.isPracticeMode)
         {
@@ -536,33 +490,9 @@ int uniform_cue_colour;
 
     private void updateTable(uint teamId)
     {
-        if (table.is4Ball)
-        {
-            if ((teamId ^ table.teamColorLocal) == 0)
-            {
-                // Set table colour to blue
-                tableSrcColour = pColour0;
-            }
-            else
-            {
-                // Table colour to orange
-                tableSrcColour = pColour1;
-            }
-        }
-        else if (table.is9Ball)
+        if (table.isSuika12)
         {
             tableSrcColour = pColour2;
-        }
-        else if (table.isSnooker6Red)
-        {
-            if ((teamId ^ table.teamColorLocal) == 0)
-            {
-                tableSrcColour = pColour0;
-            }
-            else
-            {
-                tableSrcColour = pColour1;
-            }
         }
         else
         {
@@ -674,30 +604,30 @@ int uniform_cue_colour;
         {
             playerNames[i].gameObject.SetActive(true);
         }
-        if (table.isSnooker6Red)
-        {
-            orangeScore.gameObject.SetActive(true);
-            blueScore.gameObject.SetActive(true);
-            snookerInstruction.gameObject.SetActive(true);
-        }
-        else
-        {
-            orangeScore.gameObject.SetActive(false);
-            blueScore.gameObject.SetActive(false);
-            snookerInstruction.gameObject.SetActive(false);
-        }
+        // if (table.isSnooker6Red)
+        // {
+        //     orangeScore.gameObject.SetActive(true);
+        //     blueScore.gameObject.SetActive(true);
+        //     snookerInstruction.gameObject.SetActive(true);
+        // }
+        // else
+        // {
+        //     orangeScore.gameObject.SetActive(false);
+        //     blueScore.gameObject.SetActive(false);
+        //     snookerInstruction.gameObject.SetActive(false);
+        // }
 
         _UpdateTableColorScheme();
         _UpdateTeamColor(0);
 
-        if (table.is4Ball)
-        {
-            balls[0].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[0];
-            balls[13].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[1];
-            balls[14].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[2];
-            balls[15].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[3];
-        }
-        else
+        // if (table.is4Ball)
+        // {
+        //     balls[0].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[0];
+        //     balls[13].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[1];
+        //     balls[14].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[2];
+        //     balls[15].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[3];
+        // }
+        // else
         {
             balls[0].GetComponent<MeshFilter>().sharedMesh = meshOverrideRegular[0];
             balls[13].GetComponent<MeshFilter>().sharedMesh = meshOverrideRegular[1];
@@ -772,11 +702,12 @@ int uniform_cue_colour;
         table.markerObj.SetActive(false);
         scorecard_info.SetActive(false);
         scorecard_gameobject.SetActive(false);
-        table.marker9ball.SetActive(false);
-        fourBallPoint.SetActive(false);
-        orangeScore.gameObject.SetActive(false);
-        blueScore.gameObject.SetActive(false);
-        snookerInstruction.gameObject.SetActive(false);
+        table.markerOnBall1.SetActive(false);
+        table.markerOnBall2.SetActive(false);
+        // fourBallPoint.SetActive(false);
+        // orangeScore.gameObject.SetActive(false);
+        // blueScore.gameObject.SetActive(false);
+        // snookerInstruction.gameObject.SetActive(false);
         _HideTimers();
 
         winnerText.text = "";
@@ -809,9 +740,9 @@ int uniform_cue_colour;
         if (table.localPlayerDistant)
         {
             scorecard_gameobject.SetActive(false);
-            orangeScore.gameObject.SetActive(false);
-            blueScore.gameObject.SetActive(false);
-            snookerInstruction.gameObject.SetActive(false);
+            // orangeScore.gameObject.SetActive(false);
+            // blueScore.gameObject.SetActive(false);
+            // snookerInstruction.gameObject.SetActive(false);
             for (int i = 0; i < playerNames.Length; i++)
             {
                 playerNames[i].gameObject.SetActive(false);
@@ -828,18 +759,18 @@ int uniform_cue_colour;
                 {
                     playerNames[i].gameObject.SetActive(true);
                 }
-                if (table.isSnooker6Red)
-                {
-                    orangeScore.gameObject.SetActive(true);
-                    blueScore.gameObject.SetActive(true);
-                    snookerInstruction.gameObject.SetActive(true);
-                }
-                else
-                {
-                    orangeScore.gameObject.SetActive(false);
-                    blueScore.gameObject.SetActive(false);
-                    snookerInstruction.gameObject.SetActive(false);
-                }
+                // if (table.isSnooker6Red)
+                // {
+                //     orangeScore.gameObject.SetActive(true);
+                //     blueScore.gameObject.SetActive(true);
+                //     snookerInstruction.gameObject.SetActive(true);
+                // }
+                // else
+                // {
+                //     orangeScore.gameObject.SetActive(false);
+                //     blueScore.gameObject.SetActive(false);
+                //     snookerInstruction.gameObject.SetActive(false);
+                // }
                 _UpdateScorecard();
             }
         }
@@ -850,98 +781,48 @@ int uniform_cue_colour;
     {
         if (table.localPlayerDistant) return;
 
-        if (table.is4Ball)
+        int[] counter0 = new int[2];
+
+        uint temp = table.ballsPocketedLocal;
+
+        for (int j = 0; j < 2; j++)
         {
-            scorecard.SetInt("_LeftScore", table.fbScoresLocal[0]);
-            scorecard.SetInt("_RightScore", table.fbScoresLocal[1]);
-
-            scorecardColors[0] = table.k_colour4Ball_team_0;
-            scorecardColors[1] = table.k_colour4Ball_team_1;
-            scorecard.SetColorArray("_Colors", scorecardColors);
-        }
-        else if (table.isSnooker6Red)
-        {
-            orangeScore.text = table.fbScoresLocal[0].ToString();
-            blueScore.text = table.fbScoresLocal[1].ToString();
-            bool redOnTable = table.sixRedCheckIfRedOnTable(table.ballsPocketedLocal, false);
-            bool freeBall = table.foulStateLocal == 5;
-            if (table.colorTurnLocal)
+            int counter = 0;
+            int idx = (int)(j ^ table.teamColorLocal);
+            for (int i = 0; i < 7; i++)
             {
-                snookerInstruction.text = "Pot any color but red";
-            }
-            else
-            {
-                if (redOnTable)
+                if ((temp & 0x4) > 0)
                 {
-                    snookerInstruction.text = "Pot a Red";
-                    if (freeBall)
-                        snookerInstruction.text += " or free ball of choice";
+                    counter0[idx]++;
+                    // if (usColors)
+                    // {
+                    //     if (idx == 0) scorecardColors[counter] = usColorArr[i];
+                    //     else if (idx == 1) scorecardColors[14 - counter] = usColorArr[i];
+                    //     counter++;
+                    // }
                 }
-                else
-                {
-                    int nextcolor = table.sixRedFindLowestUnpocketedColor(table.ballsPocketedLocal);
-                    if (nextcolor < 12 && nextcolor > -1)
-                    {
-                        snookerInstruction.text = "Pot " + table.sixRedNumberToColor(nextcolor, true);
-                        if (freeBall)
-                            snookerInstruction.text += " or free ball of choice";
-                    }
-                    else
-                        snookerInstruction.text = string.Empty;
-                }
-            }
-        }
-        else
-        {
-            int[] counter0 = new int[2];
 
-            uint temp = table.ballsPocketedLocal;
-
-            for (int j = 0; j < 2; j++)
-            {
-                int counter = 0;
-                int idx = (int)(j ^ table.teamColorLocal);
-                for (int i = 0; i < 7; i++)
-                {
-                    if ((temp & 0x4) > 0)
-                    {
-                        counter0[idx]++;
-                        if (usColors)
-                        {
-                            if (idx == 0) scorecardColors[counter] = usColorArr[i];
-                            else if (idx == 1) scorecardColors[14 - counter] = usColorArr[i];
-                            counter++;
-                        }
-                    }
-
-                    temp >>= 1;
-                }
-            }
-
-            if (!usColors)
-            {
-                for (int i = 0; i < 7; i++) scorecardColors[i] = (table.teamColorLocal == 0 ? pColour0 : pColour1) / 1.5f;
-                for (int i = 0; i < 7; i++) scorecardColors[8 + i] = (table.teamColorLocal == 1 ? pColour0 : pColour1) / 1.5f;
+                temp >>= 1;
             }
 
             // Add black ball if we are winning the thing
-            if (!table.gameLive && table.winningTeamLocal < 2)
-            {
-                counter0[table.winningTeamLocal] += (int)((table.ballsPocketedLocal & 0x2) >> 1);
-                if (!usColors)
-                {
-                    scorecardColors[7] = (table.winningTeamLocal == table.teamColorLocal ? pColour0 : pColour1) / 1.5f;
-                }
-                else
-                {
-                    scorecardColors[7] = Color.white * 0.1f;
-                }
-            }
+            // if (!table.gameLive && table.winningTeamLocal < 2)
+            // {
+            //     counter0[table.winningTeamLocal] += (int)((table.ballsPocketedLocal & 0x2) >> 1);
+            //     if (!usColors)
+            //     {
+            //         scorecardColors[7] = (table.winningTeamLocal == table.teamColorLocal ? pColour0 : pColour1) / 1.5f;
+            //     }
+            //     else
+            //     {
+            //         scorecardColors[7] = Color.white * 0.1f;
+            //     }
+            // }
             scorecard.SetInt("_LeftScore", counter0[0]);
             scorecard.SetInt("_RightScore", counter0[1]);
             scorecard.SetColorArray("_Colors", scorecardColors);
 
-            if (table.isTableOpenLocal || !usColors)
+            if (table.isTableOpenLocal)
             {
                 scorecard.SetInt("_SolidsMode", 0);
             }
@@ -952,43 +833,43 @@ int uniform_cue_colour;
         }
     }
 
-    public void _UpdateFourBallCueBallTextures(uint fourBallCueBall)
-    {
-        if (!table.is4Ball) return;
+    // public void _UpdateFourBallCueBallTextures(uint fourBallCueBall)
+    // {
+    //     if (!table.is4Ball) return;
 
-        if (fourBallCueBall == 0)
-        {
-            table.balls[0].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[0];
-            table.balls[13].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[1];
-        }
-        else
-        {
-            table.balls[13].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[0];
-            table.balls[0].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[1];
-        }
-    }
+    //     if (fourBallCueBall == 0)
+    //     {
+    //         table.balls[0].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[0];
+    //         table.balls[13].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[1];
+    //     }
+    //     else
+    //     {
+    //         table.balls[13].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[0];
+    //         table.balls[0].GetComponent<MeshFilter>().sharedMesh = meshOverrideFourBall[1];
+    //     }
+    // }
 
-    public bool _IsUSColors()
-    {
-        return usColors;
-    }
+    // public bool _IsUSColors()
+    // {
+    //     return usColors;
+    // }
 
-    public void _SetUSColors(bool usColors_)
-    {
-        usColors = usColors_;
+    // public void _SetUSColors(bool usColors_)
+    // {
+    //     usColors = usColors_;
 
-        if (table != null)
-        {
-            if (table.is8Ball)
-            {
-                for (int i = 0; i < 16; i++)
-                {
-                    ballMaterial.SetTexture("_MainTex", usColors ? usColorTexture : table.textureSets[0]);
-                }
-                _UpdateScorecard();
-            }
-        }
-    }
+    //     if (table != null)
+    //     {
+    //         if (table.is8Ball)
+    //         {
+    //             for (int i = 0; i < 16; i++)
+    //             {
+    //                 ballMaterial.SetTexture("_MainTex", usColors ? usColorTexture : table.textureSets[0]);
+    //             }
+    //             _UpdateScorecard();
+    //         }
+    //     }
+    // }
 
     public bool _IsShadowsDisabled()
     {

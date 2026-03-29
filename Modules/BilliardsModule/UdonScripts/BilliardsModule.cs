@@ -1435,7 +1435,7 @@ public class BilliardsModule : UdonSharpBehaviour
         uint total = 0U;
 
         // Get total for X positioning
-        int count_extent = is9Ball ? 10 : 16;
+        int count_extent = isSuika12 ? 13 : 16;
         for (int i = 1; i < count_extent; i++)
         {
             total += (ballsPocketedLocal >> i) & 0x1U;
@@ -1447,19 +1447,24 @@ public class BilliardsModule : UdonSharpBehaviour
         ballsPocketedLocal ^= 1U << id;
 
         bool foulPocket = false;
-        if (is8Ball)
+        // if (is8Ball)
+        // {
+        //     uint bmask = 0x1FCU << ((int)(teamIdLocal ^ teamColorLocal) * 7);
+        //     if (colorTurnLocal)
+        //         bmask |= 2u; // add black to mask in case of golden break (colorturnlocal = break in 8/9ball)
+        //     if (!(((0x1U << id) & ((bmask) | (isTableOpenLocal ? 0xFFFCU : 0x0000U) | ((bmask & ballsPocketedLocal) == bmask ? 0x2U : 0x0U))) > 0))
+        //     {
+        //         foulPocket = true;
+        //     }
+        // }
+        if (isSuikaPool)
         {
-            uint bmask = 0x1FCU << ((int)(teamIdLocal ^ teamColorLocal) * 7);
-            if (colorTurnLocal)
-                bmask |= 2u; // add black to mask in case of golden break (colorturnlocal = break in 8/9ball)
-            if (!(((0x1U << id) & ((bmask) | (isTableOpenLocal ? 0xFFFCU : 0x0000U) | ((bmask & ballsPocketedLocal) == bmask ? 0x2U : 0x0U))) > 0))
-            {
-                foulPocket = true;
-            }
+            // ???
         }
-        else if (is9Ball)
+        else if (isSuika12)
         {
-            foulPocket = !(findLowestUnpocketedBall(ballsPocketedOrig) == firstHit) || id == 0;
+            int ballOn = findLowestUnpocketedBall(ballsPocketedOrig);
+            foulPocket = (ballOn != firstHit && ballOn + 1 != firstHit) || id == 0;
         }
         foulPocket |= fallOffFoul;
         if (foulPocket)
@@ -1525,10 +1530,8 @@ public class BilliardsModule : UdonSharpBehaviour
                 deferLossCondition
             ;
 
-            if (is8Ball)
+            if (isSuikaPool)
             {
-                // 8ball rules are based on APA, some rules are not yet implemented.
-
                 uint bmask = 0xFFFCu;
                 uint emask = 0x0u;
 
@@ -1616,11 +1619,7 @@ public class BilliardsModule : UdonSharpBehaviour
                 }
                 colorTurnLocal = false; // colorTurnLocal tracks if it's the break
             }
-            else if (isSuikaPool)
-            {
-
-            }
-            else if (isSuika12)
+            else // if (isSuika12)
             {
                 // Suika-12 inherits from 9 ball rules
                 int target = findLowestUnpocketedBall(ballsPocketedOrig);
@@ -3096,7 +3095,7 @@ public class BilliardsModule : UdonSharpBehaviour
         debugger.SetActive(!localPlayerDistant);
         menuManager._RefreshLobby();
         graphicsManager._UpdateLOD();
-        auto_pocketblockers.SetActive(is4Ball);
+        auto_pocketblockers.SetActive(true);
     }
 
     #region Debugger

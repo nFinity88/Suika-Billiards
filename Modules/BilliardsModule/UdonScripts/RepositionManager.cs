@@ -99,12 +99,6 @@ public class RepositionManager : UdonSharpBehaviour
                     boundedLocation.z = Mathf.Clamp(boundedLocation.z, -tableEdgeY, tableEdgeY);
                 }
             }
-            //confine do D
-            if (!table.isPracticeMode && table.isSnooker6Red && i == 0)
-            {
-                boundedLocation = ConfineToD(boundedLocation, maxX);
-            }
-
             bool collides = PreventCollision(tableSurface, boundedLocation, ball);
 
             if (!collides)
@@ -117,16 +111,7 @@ public class RepositionManager : UdonSharpBehaviour
             }
         }
     }
-    public Vector3 ConfineToD(Vector3 BallPos, float maxX)
-    {
-        Vector3 midD = new Vector3(maxX, 0, 0);
-        Vector3 distFromDCenter3 = BallPos - midD;
-        if (distFromDCenter3.magnitude > table.k_SEMICIRCLERADIUS)
-        {
-            return midD + distFromDCenter3.normalized * table.k_SEMICIRCLERADIUS;
-        }
-        return BallPos;
-    }
+
     public bool PreventCollision(Transform tableSurface, Vector3 ballPos, GameObject ball)
     {            // ensure no collisions
         bool collides = false;
