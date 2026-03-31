@@ -366,7 +366,6 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
         // Run main simulation / inter-ball collision
 
         uint ball_bit = 0x1u;
-        bool is4Ball = table.is4Ball;
         for (int i = 0; i < 16; i++)
         {
             float moveTimeLeft = k_FIXED_TIME_STEP;
@@ -425,14 +424,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
                     {
                         table._BeginPerf(table.PERF_PHYSICS_CUSHION);
                         bool hitCushion;
-                        if (is4Ball)
-                        {
-                            hitCushion = _phy_ball_table_carom(i);
-                        }
-                        else
-                        {
-                            hitCushion = _phy_ball_table_std(i);
-                        }
+                        hitCushion = _phy_ball_table_carom(i);
                         table._EndPerf(table.PERF_PHYSICS_CUSHION);
 
                         if (predictedHitBall != -1 || hitCushion)
@@ -446,7 +438,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
                         else moveTimeLeft = 0;
 
                         // table._BeginPerf(table.PERF_PHYSICS_POCKET); // can only measure one at a time now ..
-                        if (_phy_ball_pockets(i, balls_P, is4Ball, ref balls_inPocketBounds[i]))
+                        if (_phy_ball_pockets(i, balls_P))
                         {
                             moveTimeLeft = 0;
                             moved[i] = false;
@@ -494,37 +486,8 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
             if (Time.time - pocketedTime > 1f)
             {
                 table._TriggerSimulationEnded(false);
-                return;
             }
         }
-
-        // if (is4Ball) return;
-
-        // if (table.isSnooker6Red)
-        // {
-        //     if (!cueBallHasCollided && balls_P[0].y > 0)
-        //     {
-        //         ball_bit = 0x1U;
-        //         Vector2 cueBallPos = new Vector2(balls_P[0].x, balls_P[0].z);
-        //         bool flewOverThisFrame = false;
-        //         for (int i = 1; i < 16; i++)
-        //         {
-        //             ball_bit <<= 1;
-        //             if ((ball_bit & sn_pocketed) > 0U) continue; //skip checking pocketed balls
-        //             Vector2 compareBallPos = new Vector2(balls_P[i].x, balls_P[i].z);
-        //             if (Vector2.Distance(cueBallPos, compareBallPos) < k_BALL_DIAMETRE)
-        //             {
-        //                 jumpShotFlewOver = true;
-        //                 flewOverThisFrame = true;
-        //             }
-        //         }
-        //         if (jumpShotFlewOver && !flewOverThisFrame)
-        //         {
-        //             table_._TriggerJumpShotFoul();
-        //             jumpShotFlewOver = false;//prevent this from being called again
-        //         }
-        //     }
-        // }
     }
 
     // ( Since v0.2.0a ) Check if we can predict a collision before move update happens to improve accuracy
@@ -919,32 +882,6 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
 
                 float dot = Vector3.Dot(velocityDelta, normal);
                 g_ball_current.GetComponent<AudioSource>().PlayOneShot(hitSounds[id % 3], Mathf.Clamp01(dot));
-
-                // if (table_.isSnooker6Red)
-                // {
-                //     if (!cueBallHasCollided && id == 0 && balls_P[0].y > 0)
-                //     {
-                //         // In snooker it's a foul if the cue ball jumps over the object ball even if it hits it in the process
-                //         // check if cue ball is moving faster in the direction of the movement of the object ball to determine if it's going to go over it.
-                //         // there may be unknown problems with this implementation.
-                //         Vector3 ballid = balls_V[id]; ballid.y = 0;
-                //         Vector3 balli = balls_V[checkBall]; balli.y = 0;
-                //         ballid *= ballid.magnitude / balli.magnitude;
-                //         balli = balli.normalized;
-                //         float velDot = Vector3.Dot(ballid, balli);
-
-                //         // detect if ball landed on top of the far side of the ball, which means by definition you went over it (this case is not covered by the velDot check)
-                //         Vector3 flattenedCueBallVelPrev = cueBallVelPrev;
-                //         flattenedCueBallVelPrev.y = 0;
-                //         bool dotBehind = Vector3.Dot(flattenedCueBallVelPrev, delta) < 0;
-
-                //         if (velDot > 1 || dotBehind)
-                //         {
-                //             table_._TriggerJumpShotFoul();
-                //         }
-                //         cueBallHasCollided = true;
-                //     }
-                // }
                 table._TriggerCollision(id, checkBall);
             }
         }
@@ -1746,7 +1683,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
 
     private bool isCueBallTouching()
     {
-        if (table.is8Ball || table.isSnooker6Red)
+        if (table.isSuikaPool)
         {
             // Check all
             for (int i = 1; i < 16; i++)
@@ -1757,30 +1694,15 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
                 }
             }
         }
-        else if (table.is9Ball) // 9
+        else // Suika 12
         {
-            // Only check to 9 ball
-            for (int i = 1; i <= 9; i++)
+            // Only check to 12 ball
+            for (int i = 1; i <= 12; i++)
             {
                 if ((balls_P[0] - balls_P[i]).sqrMagnitude < k_BALL_DSQR)
                 {
                     return true;
                 }
-            }
-        }
-        else // 4
-        {
-            if ((balls_P[0] - balls_P[13]).sqrMagnitude < k_BALL_DSQR)
-            {
-                return true;
-            }
-            if ((balls_P[0] - balls_P[14]).sqrMagnitude < k_BALL_DSQR)
-            {
-                return true;
-            }
-            if ((balls_P[0] - balls_P[15]).sqrMagnitude < k_BALL_DSQR)
-            {
-                return true;
             }
         }
 
@@ -2491,94 +2413,14 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
     }
 
     // Check pocket condition
-    bool _phy_ball_pockets(int id, Vector3[] balls_P, bool is4ball, ref bool inPocketBounds)
+    bool _phy_ball_pockets(int id, Vector3[] balls_P)
     {
-        inPocketBounds = false;
         Vector3 A = balls_P[id];
         Vector3 absA = new Vector3(Mathf.Abs(A.x), 0, Mathf.Abs(A.z));
 
-        // if (!is4ball)
-        // {
-        //     if ((absA - k_vE).sqrMagnitude < k_INNER_RADIUS_CORNER_SQ && (absA - k_vE2).sqrMagnitude < k_INNER_RADIUS_CORNER_SQ2)
-        //     {
-        //         inPocketBounds = true;
-        //         if (A.y < -k_BALL_RADIUS)
-        //         {
-        //             table._TriggerPocketBall(id, false);
-        //             pocketedTime = Time.time;
-        //             return true;
-        //         }
-        //         else if (A.y < 0.001f)
-        //         {
-        //             // while falling down the pocket, check for collisions with the pocket entrance edge
-        //             _sign_pos.x = Mathf.Sign(A.x);
-        //             _sign_pos.z = Mathf.Sign(A.z);
-        //             Vector3 pocketPoint;
-        //             float radius;
-        //             if (closest_vE)
-        //             {
-        //                 pocketPoint = k_vE2;
-        //                 radius = k_INNER_RADIUS_CORNER2;
-        //             }
-        //             else
-        //             {
-        //                 pocketPoint = k_vE;
-        //                 radius = k_INNER_RADIUS_CORNER;
-        //             }
-        //             Vector3 railDir = absA - pocketPoint;
-        //             railDir.y = 0;
-        //             if (Vector3.Dot(absA, railDir) < 0)
-        //             {
-        //                 railPoint = pocketPoint + railDir.normalized * radius;
-        //                 railPoint = Vector3.Scale(railPoint, _sign_pos);
-        //                 railPoint.y = Mathf.Min(-k_BALL_RADIUS, A.y);
-        //                 transitionCollision(id, ref balls_V[id]);
-        //             }
-        //         }
-        //     }
-
-        //     if ((absA - k_vF).sqrMagnitude < k_INNER_RADIUS_SIDE_SQ && (absA - k_vF2).sqrMagnitude < k_INNER_RADIUS_SIDE_SQ2)
-        //     {
-        //         inPocketBounds = true;
-        //         if (A.y < -k_BALL_RADIUS)
-        //         {
-        //             table._TriggerPocketBall(id, false);
-        //             pocketedTime = Time.time;
-        //             return true;
-        //         }
-        //         else if (A.y < 0.001f)
-        //         {
-        //             _sign_pos.x = Mathf.Sign(A.x);
-        //             _sign_pos.z = Mathf.Sign(A.z);
-        //             Vector3 pocketPoint;
-        //             float radius;
-        //             if (closest_vF)
-        //             {
-        //                 pocketPoint = k_vF2;
-        //                 radius = k_INNER_RADIUS_SIDE2;
-        //             }
-        //             else
-        //             {
-        //                 pocketPoint = k_vF;
-        //                 radius = k_INNER_RADIUS_SIDE;
-        //             }
-        //             Vector3 railDir = absA - pocketPoint;
-        //             railDir.y = 0;
-        //             if (Vector3.Dot(absA, railDir) < 0) // only collide with pocket entrance
-        //             {
-        //                 railPoint = pocketPoint + railDir.normalized * radius;
-        //                 railPoint = Vector3.Scale(railPoint, _sign_pos);
-        //                 railPoint.y = Mathf.Min(-k_BALL_RADIUS, A.y);
-        //                 transitionCollision(id, ref balls_V[id]);
-        //             }
-        //         }
-        //     }
-
-        // }
-
         if (absA.z > tableEdge.y)
         {
-            if (absA.z > tableBounds.y || (A.y < 0 && !inPocketBounds))
+            if (absA.z > tableBounds.y || A.y < 0)
             {
                 table._TriggerBallFallOffFoul();
                 table._TriggerPocketBall(id, true);
@@ -2589,7 +2431,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
 
         if (absA.x > tableEdge.x)
         {
-            if (absA.x > tableBounds.x || (A.y < 0 && !inPocketBounds))
+            if (absA.x > tableBounds.x || A.y < 0)
             {
                 table._TriggerBallFallOffFoul();
                 table._TriggerPocketBall(id, true);
@@ -2674,604 +2516,6 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
         }
         if (shouldBounce)
         {
-            int csl = cushionSounds.Length;
-            if (csl > 0)
-            {
-                float bounceVolume = Vector3.Dot(N, Vector3.Scale(newVel, _sign_pos));
-                if (bounceVolume > 0.5f)
-                {
-                    balls[id].GetComponent<AudioSource>().PlayOneShot(cushionSounds[UnityEngine.Random.Range(0, csl - 1)], Mathf.Clamp01(bounceVolume - 0.5f));
-                }
-            }
-        }
-        return shouldBounce;
-    }
-
-    bool _phy_ball_table_std(int id)
-    {
-        if (balls_P[id].y > k_RAIL_HEIGHT_UPPER)
-        {
-            //ball is above rail
-            balls_inBounds[id] = false;
-        }
-        bool shouldBounce = false;
-
-        Vector3 N = Vector3.zero, _V, V, a_to_v;
-        float dot;
-
-        Vector3 newPos = balls_P[id];
-        Vector3 newVel = balls_V[id];
-        Vector3 newAngVel = balls_W[id];
-
-        _sign_pos.x = Mathf.Sign(newPos.x);
-        _sign_pos.z = Mathf.Sign(newPos.z);
-        newPos = Vector3.Scale(newPos, _sign_pos);
-        Vector3 newPosPR = newPos;
-        newPosPR.x += k_BALL_RADIUS;
-        newPosPR.z += k_BALL_RADIUS;
-
-#if HT8B_DRAW_REGIONS
-        // To Identify the points
-        // side pocket
-        // Color alpha1 = new Color(0, 0, 0, 1);// remove transparency
-        // Debug.DrawRay(k_pN, Vector3.up, alpha1 + Color.red * .5f);
-        // Debug.DrawRay(k_pM, Vector3.up, Color.white);
-        // Debug.DrawRay(k_vA, Vector3.up, alpha1 + Color.magenta * .25f);
-        // Debug.DrawRay(k_pK, Vector3.up, Color.cyan);
-        // Debug.DrawRay(k_pL, Vector3.up, Color.magenta);
-        // Debug.DrawRay(k_vD, Vector3.up, alpha1 + Color.magenta * .5f);
-        // Debug.DrawRay(k_pT, Vector3.up, Color.gray);
-        // Debug.DrawRay(k_vX, Vector3.up, alpha1 + Color.cyan * .5f);
-        // // corner pocket on side
-        // Debug.DrawRay(k_pO, Vector3.up, Color.blue);
-        // Debug.DrawRay(k_pP, Vector3.up, Color.green);
-        // Debug.DrawRay(k_pU, Vector3.up, alpha1 + Color.red * .25f);
-        // Debug.DrawRay(k_vY, Vector3.up, alpha1 + Color.green * .5f);
-        // Debug.DrawRay(k_vB, Vector3.up, alpha1 + Color.cyan * .25f);
-        // // corner pocket on end
-        // Debug.DrawRay(k_pQ, Vector3.up, Color.yellow);
-        // Debug.DrawRay(k_pR, Vector3.up, Color.red);
-        // Debug.DrawRay(k_vZ, Vector3.up, alpha1 + Color.yellow * .5f);
-        // Debug.DrawRay(k_vC, Vector3.up, alpha1 + Color.blue * .25f);
-        // Debug.DrawRay(k_pV, Vector3.up, alpha1 + Color.green * .25f);
-        // // center on end
-        // Debug.DrawRay(k_pS, Vector3.up, Color.black);
-        // Debug.DrawRay(k_vW, Vector3.up, alpha1 + Color.blue * .5f);
-
-        Debug.DrawLine(k_vA, k_vB, Color.white);
-        Debug.DrawLine(k_vD, k_vA, Color.white);
-        Debug.DrawLine(k_vB, k_vY, Color.white);
-        Debug.DrawLine(k_vD, k_vX, Color.white);
-        Debug.DrawLine(k_vC, k_vW, Color.white);
-        Debug.DrawLine(k_vC, k_vZ, Color.white);
-
-        //    r_k_CUSHION_RADIUS = k_CUSHION_RADIUS-k_BALL_RADIUS;
-
-        //    _phy_table_init();
-
-        Debug.DrawLine(k_pT, k_pK, Color.yellow);
-        Debug.DrawLine(k_pK, k_pL, Color.yellow);
-        Debug.DrawLine(k_pL, k_pM, Color.yellow);
-        Debug.DrawLine(k_pM, k_pN, Color.yellow);
-        Debug.DrawLine(k_pN, k_pO, Color.yellow);
-        Debug.DrawLine(k_pO, k_pP, Color.yellow);
-        Debug.DrawLine(k_pP, k_pU, Color.yellow);
-
-        Debug.DrawLine(k_pV, k_pQ, Color.yellow);
-        Debug.DrawLine(k_pQ, k_pR, Color.yellow);
-        Debug.DrawLine(k_pR, k_pS, Color.yellow);
-
-        //    r_k_CUSHION_RADIUS = k_CUSHION_RADIUS;
-        //    _phy_table_init();
-#endif
-
-        if (newPos.x > k_vA.x) // Major Regions
-        {
-            if (newPos.x > newPos.z + k_MINOR_REGION_CONST) // Minor B
-            {
-                if (newPos.z < k_vC.z)
-                {
-                    // Region H
-#if HT8B_DRAW_REGIONS
-                    Debug.DrawLine(new Vector3(0.0f, 0.0f, 0.0f), new Vector3(k_TABLE_WIDTH, 0.0f, 0.0f), Color.red);
-                    Debug.DrawLine(k_vC, k_vC + k_vC_vW_normal, Color.red);
-#endif
-                    if (newPos.x > k_TABLE_WIDTH - k_BALL_RADIUS)
-                    {
-                        // Static resolution
-                        newPos.x = k_TABLE_WIDTH - k_BALL_RADIUS;
-                        N = k_vC_vW_normal;
-                        // Dynamic
-                        _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                        shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                        if (id == 0) Debug.Log("Region H");
-#endif
-                    }
-                }
-                else
-                {
-                    Vector3 point = k_vC;
-                    //turn point cylinder-like
-                    point.y = newPos.y;
-                    a_to_v = newPos - point;
-
-                    if (Vector3.Dot(a_to_v, k_vB_vY) > 0.0f)
-                    {
-                        // Region I ( VORONI ) (NEAR CORNER POCKET)
-#if HT8B_DRAW_REGIONS
-                        Debug.DrawLine(k_vC, k_pR, Color.green);
-                        Debug.DrawLine(k_vC, k_pQ, Color.green);
-#endif
-                        if (a_to_v.magnitude < r_k_CUSHION_RADIUS)
-                        {
-                            // Static resolution
-                            N = a_to_v.normalized;
-                            float y = newPos.y;
-                            newPos = k_vC + N * r_k_CUSHION_RADIUS;
-                            newPos.y = y;
-
-                            // Dynamic
-                            _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                            shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                            if (id == 0) Debug.Log("Region I ( VORONI ) (NEAR CORNER POCKET)");
-#endif
-                        }
-                    }
-                    else
-                    {
-                        // Region J (Inside Corner Pocket)
-#if HT8B_DRAW_REGIONS
-                        Debug.DrawLine(k_vC, k_vB, Color.red);
-                        Debug.DrawLine(k_pQ, k_pV, Color.blue);
-#endif
-                        a_to_v = newPos - k_pQ;
-
-                        if (Vector3.Dot(k_vC_vZ_normal, a_to_v) < k_BALL_RADIUS)
-                        {
-                            // Static resolution
-                            dot = Vector3.Dot(a_to_v, k_vC_vZ);
-                            float y = newPos.y;
-                            newPos = k_pQ + dot * k_vC_vZ + k_vC_vZ_normal * k_BALL_RADIUS;
-                            newPos.y = y;
-                            N = k_vC_vZ_normal;
-
-                            // Dynamic
-                            _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                            shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                            if (id == 0) Debug.Log("Region J (Inside Corner Pocket)");
-#endif
-                        }
-                        //two collisions can take place here, I don't know a good way to divide it into regions.
-                        {
-                            Vector3 cornerpoint;
-                            float radiussq;
-                            float radius;
-                            if (furthest_vE)
-                            {
-                                cornerpoint = k_vE2;
-                                radiussq = k_INNER_RADIUS_CORNER_SQ2;
-                                radius = k_INNER_RADIUS_CORNER2;
-                            }
-                            else
-                            {
-                                cornerpoint = k_vE;
-                                radiussq = k_INNER_RADIUS_CORNER_SQ;
-                                radius = k_INNER_RADIUS_CORNER;
-                            }
-                            Vector3 toPocketEdge = newPos - cornerpoint;
-                            toPocketEdge.y = cornerpoint.y; // flatten the calculation
-                            if (Vector3.Dot(toPocketEdge, upRight) > 0)
-                            {
-#if HT8B_DRAW_REGIONS
-                                if (id == 0) Debug.Log("Region J (Over Corner Pocket)");
-#endif
-                                // actually above the pocket itself, collision for the back of it if you jump over it
-                                if (toPocketEdge.sqrMagnitude + k_BALL_DSQR > radiussq)
-                                {
-                                    Vector3 pocketNormal = toPocketEdge.normalized;
-                                    // Static resolution
-                                    float y = newPos.y;
-                                    newPos = cornerpoint + pocketNormal * (radius - k_BALL_RADIUS);
-                                    newPos.y = y;
-                                    N = -pocketNormal;
-
-                                    // Dynamic
-                                    _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos), true);
-                                    shouldBounce = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else // Minor A
-            {
-                if (newPos.x < k_vB.x)
-                {
-                    // Region A
-#if HT8B_DRAW_REGIONS
-                    Debug.DrawLine(k_vA, k_vA + k_vA_vB_normal, Color.red);
-                    Debug.DrawLine(k_vB, k_vB + k_vA_vB_normal, Color.red);
-#endif
-                    if (newPosPR.z > k_pN.z)
-                    {
-                        // Velocity based A->C delegation ( scuffed Continuous Collision Detection )
-                        a_to_v = newPos - k_vA;
-                        _V = Vector3.Scale(newVel, _sign_pos);
-                        V.x = -_V.z;
-                        V.y = 0.0f;
-                        V.z = _V.x;
-
-                        if (newPos.z > k_vA.z)
-                        {
-                            if (Vector3.Dot(V, a_to_v) > 0.0f)
-                            {
-                                // Region C ( Delegated )
-                                a_to_v = newPos - k_pL;
-
-                                // Static resolution
-                                dot = Vector3.Dot(a_to_v, k_vA_vD);
-                                newPos = k_pL + dot * k_vA_vD;
-                                N = k_vA_vD_normal;
-                                // Dynamic
-                                _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                                shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                                if (id == 0) Debug.Log("Region C ( Delegated )");
-#endif
-                            }
-                            else
-                            {
-                                // Static resolution
-                                newPos.z = k_pN.z - k_BALL_RADIUS;
-                                N = k_vA_vB_normal;
-                                // Dynamic
-                                _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                                shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                                if (id == 0) Debug.Log("Region A II");
-#endif
-                            }
-                        }
-                        else
-                        {
-                            // Static resolution
-                            newPos.z = k_pN.z - k_BALL_RADIUS;
-                            N = k_vA_vB_normal;
-
-                            // Dynamic
-                            _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                            shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                            if (id == 0) Debug.Log("Region A");
-#endif
-                        }
-                    }
-                }
-                else
-                {
-                    Vector3 point = k_vB;
-                    //turn point cylinder-like
-                    point.y = newPos.y;
-                    a_to_v = newPos - point;
-
-                    if (Vector3.Dot(a_to_v, k_vB_vY) > 0.0f)
-                    {
-                        // Region F ( VORONI ) (NEAR CORNER POCKET)
-#if HT8B_DRAW_REGIONS
-                        Debug.DrawLine(k_vB, k_pO, Color.green);
-                        Debug.DrawLine(k_vB, k_pP, Color.green);
-#endif
-                        if (a_to_v.magnitude < r_k_CUSHION_RADIUS)
-                        {
-                            // Static resolution
-                            N = a_to_v.normalized;
-                            float y = newPos.y;
-                            newPos = k_vB + N * r_k_CUSHION_RADIUS;
-                            newPos.y = y;
-
-                            // Dynamic
-                            _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                            shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                            if (id == 0) Debug.Log("Region F ( VORONI ) (NEAR CORNER POCKET)");
-#endif
-                        }
-                    }
-                    else
-                    {
-                        // Region G (Inside Corner Pocket)
-#if HT8B_DRAW_REGIONS
-                        Debug.DrawLine(k_vB, k_vC, Color.red);
-                        Debug.DrawLine(k_pP, k_pU, Color.blue);
-#endif
-                        a_to_v = newPos - k_pP;
-
-                        if (Vector3.Dot(k_vB_vY_normal, a_to_v) < k_BALL_RADIUS)
-                        {
-                            // Static resolution
-                            dot = Vector3.Dot(a_to_v, k_vB_vY);
-                            float y = newPos.y;
-                            newPos = k_pP + dot * k_vB_vY + k_vB_vY_normal * k_BALL_RADIUS;
-                            newPos.y = y;
-                            N = k_vB_vY_normal;
-
-                            // Dynamic
-                            _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                            shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                            if (id == 0) Debug.Log("Region G (Inside Corner Pocket)");
-#endif
-                        }
-                        //two collisions can take place here, I don't know a good way to divide it into regions.
-                        {
-                            Vector3 cornerpoint;
-                            float radiussq;
-                            float radius;
-                            if (furthest_vE)
-                            {
-                                cornerpoint = k_vE2;
-                                radiussq = k_INNER_RADIUS_CORNER_SQ2;
-                                radius = k_INNER_RADIUS_CORNER2;
-                            }
-                            else
-                            {
-                                cornerpoint = k_vE;
-                                radiussq = k_INNER_RADIUS_CORNER_SQ;
-                                radius = k_INNER_RADIUS_CORNER;
-                            }
-                            Vector3 toPocketEdge = newPos - cornerpoint;
-                            toPocketEdge.y = cornerpoint.y; // flatten the calculation
-                            if (Vector3.Dot(toPocketEdge, upRight) > 0)
-                            {
-#if HT8B_DRAW_REGIONS
-                                if (id == 0) Debug.Log("Region G (Over Corner Pocket)");
-#endif
-                                // actually above the pocket itself, collision for the back of it if you jump over it
-                                if (toPocketEdge.sqrMagnitude + k_BALL_DSQR > radiussq)
-                                {
-                                    Vector3 pocketNormal = toPocketEdge.normalized;
-                                    // Static resolution
-                                    float y = newPos.y;
-                                    newPos = cornerpoint + pocketNormal * (radius - k_BALL_RADIUS);
-                                    newPos.y = y;
-                                    N = -pocketNormal;
-
-                                    // Dynamic
-                                    _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos), true);
-                                    shouldBounce = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            Vector3 point = k_vA;
-            //turn point cylinder-like
-            point.y = newPos.y;
-            a_to_v = newPos - point;
-
-            if (Vector3.Dot(a_to_v, k_vA_vD) > 0.0f)
-            {
-                point = k_vD;
-                //turn point cylinder-like
-                point.y = newPos.y;
-                a_to_v = newPos - point;
-
-                if (Vector3.Dot(a_to_v, k_vA_vD) > 0.0f)
-                {
-                    if (newPos.z > k_pK.z)
-                    {
-                        // Region E
-#if HT8B_DRAW_REGIONS
-                        Debug.DrawLine(k_vD, k_vD + k_vC_vW_normal, Color.red);
-#endif
-                        if (newPosPR.x > k_pK.x)
-                        {
-                            // Static resolution
-                            newPos.x = k_pK.x - k_BALL_RADIUS;
-                            N = -k_vC_vW_normal;
-
-                            // Dynamic
-                            _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                            shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                            if (id == 0) Debug.Log("Region E");
-#endif
-                        }
-                        //two collisions can take place here, I don't know a good way to divide it into regions.
-                        {
-                            Vector3 cornerpoint;
-                            float radiussq;
-                            float radius;
-                            if (furthest_vF)
-                            {
-                                cornerpoint = k_vF2;
-                                radiussq = k_INNER_RADIUS_SIDE_SQ2;
-                                radius = k_INNER_RADIUS_SIDE2;
-                            }
-                            else
-                            {
-                                cornerpoint = k_vF;
-                                radiussq = k_INNER_RADIUS_SIDE_SQ;
-                                radius = k_INNER_RADIUS_SIDE;
-                            }
-                            Vector3 toPocketEdge = newPos - cornerpoint;
-                            toPocketEdge.y = cornerpoint.y; // flatten the calculation
-                            if (Vector3.Dot(toPocketEdge, cornerpoint) > 0)
-                            {
-#if HT8B_DRAW_REGIONS
-                                if (id == 0) Debug.Log("Region E (Over Side Pocket)");
-#endif
-                                // actually above the pocket itself, collision for the back of it if you jump over it
-                                if (toPocketEdge.sqrMagnitude + k_BALL_DSQR > radiussq)
-                                {
-                                    Vector3 pocketNormal = toPocketEdge.normalized;
-                                    // Static resolution
-                                    float y = newPos.y;
-                                    newPos = cornerpoint + pocketNormal * (radius - k_BALL_RADIUS);
-                                    newPos.y = y;
-                                    N = -pocketNormal;
-
-                                    // Dynamic
-                                    _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos), true);
-                                    shouldBounce = true;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Region D ( VORONI )
-#if HT8B_DRAW_REGIONS
-                        Debug.DrawLine(k_vD, k_vD + k_vC_vW_normal, Color.green);
-                        Debug.DrawLine(k_vD, k_vD + k_vA_vD_normal, Color.green);
-#endif
-                        if (a_to_v.magnitude < r_k_CUSHION_RADIUS)
-                        {
-                            // Static resolution
-                            N = a_to_v.normalized;
-                            float y = newPos.y;
-                            newPos = k_vD + N * r_k_CUSHION_RADIUS;
-                            newPos.y = y;
-
-                            // Dynamic
-                            _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                            shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                            if (id == 0) Debug.Log("Region D ( VORONI )");
-#endif
-                        }
-                    }
-                }
-                else
-                {
-                    // Region C
-#if HT8B_DRAW_REGIONS
-                    Debug.DrawLine(k_vA, k_vA + k_vA_vD_normal, Color.red);
-                    Debug.DrawLine(k_vD, k_vD + k_vA_vD_normal, Color.red);
-                    Debug.DrawLine(k_pL, k_pM, Color.blue);
-#endif
-                    a_to_v = newPos - k_pL;
-
-                    if (Vector3.Dot(k_vA_vD_normal, a_to_v) < k_BALL_RADIUS)
-                    {
-                        // Static resolution
-                        dot = Vector3.Dot(a_to_v, k_vA_vD);
-                        float y = newPos.y;
-                        newPos = k_pL + dot * k_vA_vD + k_vA_vD_normal * k_BALL_RADIUS;
-                        newPos.y = y;
-                        N = k_vA_vD_normal;
-
-                        // Dynamic
-                        _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                        shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                        if (id == 0) Debug.Log("Region C");
-#endif
-                    }
-                }
-            }
-            else
-            {
-                // Region B ( VORONI )
-#if HT8B_DRAW_REGIONS
-                Debug.DrawLine(k_vA, k_vA + k_vA_vB_normal, Color.green);
-                Debug.DrawLine(k_vA, k_vA + k_vA_vD_normal, Color.green);
-#endif
-                if (a_to_v.magnitude < r_k_CUSHION_RADIUS)
-                {
-                    // Static resolution
-                    N = a_to_v.normalized;
-                    float y = newPos.y;
-                    newPos = k_vA + N * r_k_CUSHION_RADIUS;
-                    newPos.y = y;
-
-                    // Dynamic
-                    _phy_bounce_cushion(ref newVel, ref newAngVel, id, Vector3.Scale(N, _sign_pos));
-                    shouldBounce = true;
-#if HT8B_DRAW_REGIONS
-                    if (id == 0) Debug.Log("Region B ( VORONI )");
-#endif
-                }
-            }
-        }
-        // uncomment to visualize the position of railPoint every frame
-        /*         if (id == 0)
-                {
-                    Vector3 newposTemp = Vector3.Scale(newPos, _sign_pos);
-                    Vector3 moveDistance2 = balls_P[id] - newposTemp;
-                    float moveDistance2Mag = moveDistance2.magnitude;
-                    // balls_transitioningBounds[id] = moveDistance2Mag < k_BALL_RADIUS;
-                    railPoint = newposTemp + k_BALL_RADIUS * moveDistance2.normalized;
-                    railPoint.y = k_RAIL_HEIGHT_UPPER - k_BALL_RADIUS;
-                    Debug.DrawRay(balls[0].transform.parent.TransformPoint(railPoint), Vector3.up * .3f, Color.white, 3f);
-                } */
-        if (shouldBounce)
-        {
-            if (Vector3.Dot(newVel, Vector3.Scale(N, _sign_pos)) < 0)
-            {
-                if (balls_inBounds[id])
-                {
-                    // table._LogInfo("ball id " + id + " bounced off top of cushion out of bounds");
-                    balls_inBounds[id] = false;
-                    balls_transitioningBounds[id] = true;
-                }
-            }
-            if (balls_inBounds[id])
-            {
-                //if ball was in bounds and not above rail last time, bounce
-                balls_P[id] = Vector3.Scale(newPos, _sign_pos);
-                balls_V[id] = newVel;
-                balls_W[id] = newAngVel;
-                table._TriggerBounceCushion(id);
-                balls_inBounds[id] = true;
-                balls_transitioningBounds[id] = false;
-            }
-            else
-            {
-                // stays out of bounds, detects if it's transitioning
-                shouldBounce = false;
-                Vector3 pos = Vector3.Scale(newPos, _sign_pos);
-
-                Vector3 moveDistance = balls_P[id] - pos;
-                float moveDistanceMag = moveDistance.magnitude;
-                balls_transitioningBounds[id] = moveDistanceMag < k_BALL_RADIUS;
-                railPoint = pos + k_BALL_RADIUS * moveDistance.normalized;
-                railPoint.y = k_RAIL_HEIGHT_UPPER - k_BALL_RADIUS;
-                // visualize nearest rail edge when on top of it
-                // Debug.DrawRay(balls[0].transform.parent.TransformPoint(railPoint), Vector3.up * .3f, Color.white, 3f);
-            }
-        }
-        else
-        {
-            balls_transitioningBounds[id] = false;
-            balls_inBounds[id] = true;
-        }
-
-        if (balls_transitioningBounds[id])
-        {
-            //collide with railPoint
-            shouldBounce = transitionCollision(id, ref balls_V[id]);
-        }
-
-        if (shouldBounce)
-        {
-            if (Vector3.Dot(newVel, Vector3.Scale(N, _sign_pos)) < 0)
-            {
-                if (balls_inBounds[id])
-                {
-                    // table._LogInfo("ball id " + id + " bounced off top of cushion out of bounds");
-                    balls_inBounds[id] = false;
-                    balls_transitioningBounds[id] = true;
-                }
-            }
             int csl = cushionSounds.Length;
             if (csl > 0)
             {

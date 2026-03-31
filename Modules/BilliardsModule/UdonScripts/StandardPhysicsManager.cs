@@ -363,26 +363,16 @@ public class StandardPhysicsManager : UdonSharpBehaviour
         bool canCueBallBounceOffCushion = balls_P[0].y < k_BALL_RADIUS;
 
         table._BeginPerf(table.PERF_PHYSICS_CUSHION);
-        if (table.is4Ball)
+        ball_bit = 0x1U;
+        // Run edge collision
+        for (int i = 0; i < 16; i++)
         {
-            if (canCueBallBounceOffCushion && moved[0]) _phy_ball_table_carom(0);
-            if (moved[13]) _phy_ball_table_carom(13);
-            if (moved[14]) _phy_ball_table_carom(14);
-            if (moved[15]) _phy_ball_table_carom(15);
-        }
-        else
-        {
-            ball_bit = 0x1U;
-            // Run edge collision
-            for (int i = 0; i < 16; i++)
+            if (moved[i] && (ball_bit & sn_pocketed) == 0U && (i != 0 || canCueBallBounceOffCushion))
             {
-                if (moved[i] && (ball_bit & sn_pocketed) == 0U && (i != 0 || canCueBallBounceOffCushion))
-                {
-                    _phy_ball_table_std(i);
-                }
-
-                ball_bit <<= 1;
+                _phy_ball_table_carom(i);
             }
+
+            ball_bit <<= 1;
         }
         table._EndPerf(table.PERF_PHYSICS_CUSHION);
 
@@ -397,55 +387,6 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                 outOfBounds = true;
             }
         }
-
-        if (table.is4Ball) return;
-
-        // if (table.isSnooker6Red)
-        // {
-        //     if (!cueBallHasCollided && balls_P[0].y > 0)
-        //     {
-        //         ball_bit = 0x1U;
-        //         Vector2 cueBallPos = new Vector2(balls_P[0].x, balls_P[0].z);
-        //         bool flewOverThisFrame = false;
-        //         for (int i = 1; i < 16; i++)
-        //         {
-        //             ball_bit <<= 1;
-        //             if ((ball_bit & sn_pocketed) > 0U) continue; //skip checking pocketed balls
-        //             Vector2 compareBallPos = new Vector2(balls_P[i].x, balls_P[i].z);
-        //             if (Vector2.Distance(cueBallPos, compareBallPos) < k_BALL_DIAMETRE)
-        //             {
-        //                 jumpShotFlewOver = true;
-        //                 flewOverThisFrame = true;
-        //             }
-        //         }
-        //         if (jumpShotFlewOver && !flewOverThisFrame)
-        //         {
-        //             table_._TriggerJumpShotFoul();
-        //             jumpShotFlewOver = false;//prevent this from being called again
-        //         }
-        //     }
-        // }
-
-        ball_bit = 0x1U;
-
-        // Run triggers
-        table._BeginPerf(table.PERF_PHYSICS_POCKET);
-        if (!table.is4Ball)
-        {
-            for (int i = 0; i < 16; i++)
-            {
-                if (moved[i] && (ball_bit & sn_pocketed) == 0U && (i != 0 || !outOfBounds))
-                {
-                    if (i != 0 || canCueBallBounceOffCushion)
-                    {
-                        _phy_ball_pockets(i, balls_P);
-                    }
-                }
-
-                ball_bit <<= 1;
-            }
-        }
-        table._EndPerf(table.PERF_PHYSICS_POCKET);
     }
 
     // ( Since v0.2.0a ) Check if we can predict a collision before move update happens to improve accuracy
@@ -562,31 +503,6 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                 {
                     g_ball_current.GetComponent<AudioSource>().PlayOneShot(hitSounds[id % 3], Mathf.Clamp01(dot));
                 }
-                // if (table_.isSnooker6Red)
-                // {
-                //     if (!cueBallHasCollided && id == 0 && balls_P[0].y > 0)
-                //     {
-                //         // In snooker it's a foul if the cue ball jumps over the object ball even if it hits it in the process
-                //         // check if cue ball is moving faster in the direction of the movement of the object ball to determine if it's going to go over it.
-                //         // there may be unknown problems with this implementation.
-                //         Vector3 ballid = balls_V[id]; ballid.y = 0;
-                //         Vector3 balli = balls_V[i]; balli.y = 0;
-                //         ballid *= ballid.magnitude / balli.magnitude;
-                //         balli = balli.normalized;
-                //         float velDot = Vector3.Dot(ballid, balli);
-
-                //         // detect if ball landed on top of the far side of the ball, which means by definition you went over it (this case is not covered by the velDot check)
-                //         Vector3 flattenedCueBallVelPrev = cueBallVelPrev;
-                //         flattenedCueBallVelPrev.y = 0;
-                //         bool dotBehind = Vector3.Dot(flattenedCueBallVelPrev, delta) < 0;
-
-                //         if (velDot > 1 || dotBehind)
-                //         {
-                //             table_._TriggerJumpShotFoul();
-                //         }
-                //         cueBallHasCollided = true;
-                //     }
-                // }
                 table._TriggerCollision(id, i);
             }
         }
@@ -747,7 +663,7 @@ public class StandardPhysicsManager : UdonSharpBehaviour
 
     private bool isCueBallTouching()
     {
-        if (table.is8Ball || table.isSnooker6Red)
+        if (table.isSuikaPool)
         {
             // Check all
             for (int i = 1; i < 16; i++)
@@ -758,30 +674,15 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                 }
             }
         }
-        else if (table.is9Ball) // 9
+        else // Suika 12
         {
-            // Only check to 9 ball
-            for (int i = 1; i <= 9; i++)
+            // Only check to 12 ball
+            for (int i = 1; i <= 12; i++)
             {
                 if ((balls_P[0] - balls_P[i]).sqrMagnitude < k_BALL_DSQR)
                 {
                     return true;
                 }
-            }
-        }
-        else // 4
-        {
-            if ((balls_P[0] - balls_P[13]).sqrMagnitude < k_BALL_DSQR)
-            {
-                return true;
-            }
-            if ((balls_P[0] - balls_P[14]).sqrMagnitude < k_BALL_DSQR)
-            {
-                return true;
-            }
-            if ((balls_P[0] - balls_P[15]).sqrMagnitude < k_BALL_DSQR)
-            {
-                return true;
             }
         }
 
