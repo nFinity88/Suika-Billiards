@@ -482,7 +482,7 @@ public class StandardPhysicsManager : UdonSharpBehaviour
 
                 // The balls are touching!
                 // If they are same number (fruit), they merge
-                if (table.isSuika12 && i == id + 1 && ((0x1U << (id - 1)) & sn_pocketed != 0U))
+                if (table.isSuika12 && i == id + 1 && ((0x1U << (id - 1)) & sn_pocketed) != 0U)
                 {
                     // static resolution - merged ball is the average position
                     balls_P[i] = (balls_P[i] + balls_P[id]) * 0.5f;
@@ -494,13 +494,13 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                     // average the roll of each ball
                     // then add additional rotation induced by velocity about the new center point
                     balls_W[i] = (balls_W[i] + balls_W[id]) * 0.5f
-                        + Vector3.Cross(balls_W[id], -normal);
+                        + Vector3.Cross(balls_W[id], -normal)
                         + Vector3.Cross(balls_W[i], normal);
 
                     // merged ball has average velocity
                     balls_V[i] = (balls_V[i] + balls_V[id]) * 0.5f;
 
-                    table._TriggerPocketBall(id);
+                    table._TriggerPocketBall(id, false);
                     // No need to call collision callback since the cue ball can't be involved
                 }
                 else
