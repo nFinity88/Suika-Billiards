@@ -480,30 +480,56 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                 dist = Mathf.Sqrt(dist);
                 Vector3 normal = delta / dist;
 
-                // static resolution
-                Vector3 res = (k_BALL_DIAMETRE - dist) * normal;
-                balls_P[i] += res;
-                balls_P[id] -= res;
-                moved[i] = true;
-                moved[id] = true;
-
-                Vector3 velocityDelta = balls_V[id] - balls_V[i];
-
-                float dot = Vector3.Dot(velocityDelta, normal);
-
-                // Dynamic resolution (Cr is assumed to be (1)+1.0)
-
-                Vector3 cueBallVelPrev = balls_V[0];
-                Vector3 reflection = normal * dot;
-                balls_V[id] -= reflection;
-                balls_V[i] += reflection;
-
-                // Prevent sound spam if it happens
-                if (balls_V[id].sqrMagnitude > 0 && balls_V[i].sqrMagnitude > 0)
+                // The balls are touching!
+                // If they are same number (fruit), they merge
+                if (table.isSuika12 && i == id + 1 && ((0x1U << (id - 1)) & sn_pocketed != 0U))
                 {
-                    g_ball_current.GetComponent<AudioSource>().PlayOneShot(hitSounds[id % 3], Mathf.Clamp01(dot));
+                    // static resolution - merged ball is the average position
+                    balls_P[i] = (balls_P[i] + balls_P[id]) * 0.5f;
+                    moved[i] = true;
+
+                    // dynamic resolution
+
+                    // rotation is weird
+                    // average the roll of each ball
+                    // then add additional rotation induced by velocity about the new center point
+                    balls_W[i] = (balls_W[i] + balls_W[id]) * 0.5f
+                        + Vector3.Cross(balls_W[id], -normal);
+                        + Vector3.Cross(balls_W[i], normal);
+
+                    // merged ball has average velocity
+                    balls_V[i] = (balls_V[i] + balls_V[id]) * 0.5f;
+
+                    table._TriggerPocketBall(id);
+                    // No need to call collision callback since the cue ball can't be involved
                 }
-                table._TriggerCollision(id, i);
+                else
+                {
+                    // static resolution
+                    Vector3 res = (k_BALL_DIAMETRE - dist) * normal;
+                    balls_P[i] += res;
+                    balls_P[id] -= res;
+                    moved[i] = true;
+                    moved[id] = true;
+
+                    Vector3 velocityDelta = balls_V[id] - balls_V[i];
+
+                    float dot = Vector3.Dot(velocityDelta, normal);
+
+                    // Dynamic resolution (Cr is assumed to be (1)+1.0)
+
+                    // Vector3 cueBallVelPrev = balls_V[0];
+                    Vector3 reflection = normal * dot;
+                    balls_V[id] -= reflection;
+                    balls_V[i] += reflection;
+
+                    // Prevent sound spam if it happens
+                    if (balls_V[id].sqrMagnitude > 0 && balls_V[i].sqrMagnitude > 0)
+                    {
+                        g_ball_current.GetComponent<AudioSource>().PlayOneShot(hitSounds[id % 3], Mathf.Clamp01(dot));
+                    }
+                    table._TriggerCollision(id, i);
+                }
             }
         }
 
@@ -1018,47 +1044,6 @@ public class StandardPhysicsManager : UdonSharpBehaviour
 #endif
     }
 
-    // Check pocket condition
-    void _phy_ball_pockets(int id, Vector3[] balls_P)
-    {
-        Vector3 A = balls_P[id];
-        Vector3 absA = new Vector3(Mathf.Abs(A.x), 0, Mathf.Abs(A.z));
-
-        if ((absA - k_vE).sqrMagnitude < k_INNER_RADIUS_CORNER_SQ && (absA - k_vE2).sqrMagnitude < k_INNER_RADIUS_CORNER_SQ2)
-        {
-            table._TriggerPocketBall(id, false);
-            pocketedTime = Time.time;
-            return;
-        }
-
-        if ((absA - k_vF).sqrMagnitude < k_INNER_RADIUS_SIDE_SQ && (absA - k_vF2).sqrMagnitude < k_INNER_RADIUS_SIDE_SQ2)
-        {
-            table._TriggerPocketBall(id, false);
-            pocketedTime = Time.time;
-            return;
-        }
-
-        if (absA.z > tableEdge.y)
-        {
-            if (absA.z > tableBounds.y || (A.y < 0))
-            {
-                table._TriggerPocketBall(id, true);
-                pocketedTime = Time.time;
-                return;
-            }
-        }
-
-        if (absA.x > tableEdge.x)
-        {
-            if (absA.x > tableBounds.x || (A.y < 0))
-            {
-                table._TriggerPocketBall(id, true);
-                pocketedTime = Time.time;
-                return;
-            }
-        }
-    }
-
     // Pocketless table
     void _phy_ball_table_carom(int id)
     {
@@ -1196,23 +1181,6 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                             if (id == 0) Debug.Log("Region J (Inside Corner Pocket)");
 #endif
                         }
-                        /* if (!                        {
-                            Vector3 toPocketEdge = newPos - k_vE;
-                            if (Vector3.Dot(toPocketEdge, k_vE) > 0)
-                            {
-                                // actually above the corner pocket itself, collision for the back of it if you jump over it
-                                // TODO: sqrmag inner radius
-                                if (toPocketEdge.sqrMagnitude + k_BALL_DSQR > k_INNER_RADIUS_CORNER_SQ)
-                                {
-                                    Vector3 pocketNormal = toPocketEdge.normalized;
-                                    // Static resolution
-                                    newPos = k_vE + pocketNormal * k_INNER_RADIUS_CORNER - pocketNormal * k_BALL_RADIUS;
-
-                                    // Dynamic
-                                    _phy_bounce_cushion(id, Vector3.Scale(-pocketNormal, _sign_pos));
-                                                                    }
-                            }
-                        } */
                     }
                 }
             }
@@ -1325,23 +1293,6 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                             if (id == 0) Debug.Log("Region G (Inside Corner Pocket)");
 #endif
                         }
-                        /* if (!                        {
-                            Vector3 toPocketEdge = newPos - k_vE;
-                            if (Vector3.Dot(toPocketEdge, k_vE) > 0)
-                            {
-                                // actually above the corner pocket itself, collision for the back of it if you jump over it
-                                // TODO: sqrmag inner radius
-                                if (toPocketEdge.sqrMagnitude + k_BALL_DSQR > k_INNER_RADIUS_CORNER_SQ)
-                                {
-                                    Vector3 pocketNormal = toPocketEdge.normalized;
-                                    // Static resolution
-                                    newPos = k_vE + pocketNormal * k_INNER_RADIUS_CORNER - pocketNormal * k_BALL_RADIUS;
-
-                                    // Dynamic
-                                    _phy_bounce_cushion(id, Vector3.Scale(-pocketNormal, _sign_pos));
-                                                                    }
-                            }
-                        } */
                     }
                 }
             }

@@ -481,14 +481,6 @@ public class BilliardsModule : UdonSharpBehaviour
 
         _TriggerCueDeactivate();
 
-        // if (foulStateLocal == 5)//free ball
-        // {
-        //     if (SixRedCheckObjBlocked(ballsPocketedLocal, colorTurnLocal, true) > 0)
-        //     {
-        //         _LogInfo("6RED: Free ball turn. First hit ball is counted as current objective ball.");
-        //     }
-        // }
-
         networkingManager._OnHitBall(ballsV[0], ballsW[0]);
     }
 
@@ -1362,70 +1354,16 @@ public class BilliardsModule : UdonSharpBehaviour
     }
     public void _TriggerCollision(int srcId, int dstId)
     {
-        if (dstId < srcId)
+        if (isSuika12 && firstHit == 0)
         {
-            int tmp = dstId;
-            dstId = srcId;
-            srcId = tmp;
-        }
-        if (srcId != 0) return;
-
-        switch (gameModeLocal)
-        {
-            case 0:
-            case 1:
-                if (firstHit == 0) firstHit = dstId;
-                break;
-            case 2:
-                if (firstHit == 0)
-                {
-                    firstHit = dstId;
-                    break;
-                }
-                if (secondHit == 0)
-                {
-                    if (dstId != firstHit)
-                    {
-                        secondHit = dstId;
-                        //handle4BallHit(ballsP[dstId], true);
-                    }
-                    break;
-                }
-                if (thirdHit == 0)
-                {
-                    if (dstId != firstHit && dstId != secondHit)
-                    {
-                        thirdHit = dstId;
-                        //handle4BallHit(ballsP[dstId], true);
-                    }
-                    break;
-                }
-                break;
-            case 3:
-                if (dstId == 13)
-                {
-                    //handle4BallHit(ballsP[dstId], false);
-                    break;
-                }
-                if (firstHit == 0)
-                {
-                    firstHit = dstId;
-                    break;
-                }
-                if (secondHit == 0)
-                {
-                    if (dstId != firstHit)
-                    {
-                        secondHit = dstId;
-                        //handle4BallHit(ballsP[dstId], true);
-                    }
-                    break;
-                }
-                break;
-            case 4:
-                //Snooker
-                if (firstHit == 0) firstHit = dstId;
-                break;
+            if (dstId < srcId)
+            {
+                int tmp = dstId;
+                dstId = srcId;
+                srcId = tmp;
+            }
+            if (srcId != 0) return;
+            firstHit = dstId;
         }
     }
 
