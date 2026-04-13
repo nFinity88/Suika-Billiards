@@ -275,14 +275,12 @@ public class BilliardsModule : UdonSharpBehaviour
     [NonSerialized] public CueController activeCue;
 
     // some udon optimizations
-    // [NonSerialized] public bool is8Ball = false;
-    // [NonSerialized] public bool is9Ball = false;
+    [NonSerialized] public bool isSuikaPool = false;
+    [NonSerialized] public bool isSuika12 = false;
     // [NonSerialized] public bool is4Ball = false;
     // [NonSerialized] public bool isJp4Ball = false;
     // [NonSerialized] public bool isKr4Ball = false;
     // [NonSerialized] public bool isSnooker6Red = false;
-    [NonSerialized] public bool isSuikaPool = false;
-    [NonSerialized] public bool isSuika12 = false;
     [NonSerialized] public bool isPocketBlocked = false;
     [NonSerialized] public bool isPracticeMode = false;
     [NonSerialized] public bool isPlayer = false;
@@ -824,13 +822,11 @@ public class BilliardsModule : UdonSharpBehaviour
         {
             gameModeLocal = gameModeSynced;
 
-            // is8Ball = gameModeLocal == 0u;
-            // is9Ball = gameModeLocal == 1u;
+            isSuikaPool = gameModeLocal == 0u;
+            isSuika12 = gameModeLocal == 1u;
             // isJp4Ball = gameModeLocal == 2u;
             // isKr4Ball = gameModeLocal == 3u;
             // isSnooker6Red = gameModeLocal == 4u;
-            isSuikaPool = gameModeLocal == 64u;
-			isSuika12 = gameModeLocal == 65u;
             // is4Ball = isJp4Ball || isKr4Ball;
 
 

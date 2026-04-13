@@ -491,11 +491,18 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                     // dynamic resolution
 
                     // rotation is weird
-                    // average the roll of each ball
-                    // then add additional rotation induced by velocity about the new center point
-                    balls_W[i] = (balls_W[i] + balls_W[id]) * 0.5f
-                        + Vector3.Cross(balls_W[id], -normal)
-                        + Vector3.Cross(balls_W[i], normal);
+                    // average the roll of each ball, but...
+                    // then add additional rotation induced by velocity about the new center point as follows:
+                    // Angular momentum is the product of rotational inertia and angular velocity
+                    // At the start, the two balls are touching and rotating about axis tangent to each (perpendicular to "normal")
+                    // The rotational inertia for each ball is (7/5)mr^2
+                    // and the starting angular velocities (w_id and w_i) are the components of the velocities perpendicular to the "normal"
+                    // So the starting angular momentum is (7/5)mr^2 w_id + (7/5)mr^2 w_i = ((7/5)mr^2)(w_id + w_i)
+                    // After the merge, we have only a single sphere with twice the mass (which we'll "poof" away after dealing with the collision)
+                    // The rotational interia of a sphere about it's COG is (2/5)(2m)r^2 and so the final angular momentum is (4/5)mr^2 w_out
+                    // So by conservation: ((7/5)mr^2)(w_id + w_i) = (4/5)mr^2 w_out, or w_out = (7/4)(w_id + w_i)
+                    balls_W[i] = (balls_W[i] + balls_W[id]) * 0.5f +
+                        (Vector3.Cross(-normal, balls_W[id]) + Vector3.Cross(normal, balls_W[i])) * 1.75f;
 
                     // merged ball has average velocity
                     balls_V[i] = (balls_V[i] + balls_V[id]) * 0.5f;
