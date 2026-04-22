@@ -101,8 +101,8 @@ public class BilliardsModule : UdonSharpBehaviour
     private readonly int[] sixredsnooker_ballpoints = { 0, 7, 2, 5, 1, 6, 1, 3, 4, 1, 1, 1, 1 };
     private readonly int[] break_order_sixredsnooker = { 4, 6, 9, 10, 11, 12, 2, 7, 8, 3, 5, 1 };
     private readonly int[] break_order_8ball = { 9, 2, 10, 11, 1, 3, 4, 12, 5, 13, 14, 6, 15, 7, 8 };
-    private readonly int[] break_order_9ball = { 2, 3, 4, 5, 9, 6, 7, 8, 1 };
-    private readonly int[] break_rows_9ball = { 0, 1, 2, 1, 0 };
+    private readonly int[] break_order_suika12 = { 1, 9, 8, 7, 2, 6, 4, 10, 3, 5, 11, 12 };
+    private readonly int[] break_rows_suika12 = { 1, 2, 3, 4, 1, 0, 1 };
 
     #region InspectorValues
     [Header("Managers")]
@@ -1740,14 +1740,14 @@ public class BilliardsModule : UdonSharpBehaviour
 
         {
             // 9 ball
-            initialBallsPocketed[1] = 0xFC00u;
+            initialBallsPocketed[1] = 0xE000u;
 
-            for (int i = 0, k = 0; i < 5; i++)
+            for (int i = 0, k = 0; i < 7; i++)
             {
-                int rown = break_rows_9ball[i];
-                for (int j = 0; j <= rown; j++)
+                int rown = break_rows_suika12[i];
+                for (int j = 0; j < rown; j++)
                 {
-                    initialPositions[1][break_order_9ball[k++]] = new Vector3
+                    initialPositions[1][break_order_suika12[k++]] = new Vector3
                     (
                        quarterTable - (k_BALL_PL_Y * 2) + i * k_BALL_PL_Y /* + UnityEngine.Random.Range(-k_RANDOMIZE_F, k_RANDOMIZE_F) */,
                        0.0f,
