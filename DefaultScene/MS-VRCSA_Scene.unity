@@ -978,16 +978,6 @@ PrefabInstance:
         type: 2}
     - target: {fileID: 6338887527519480172, guid: b28212317aad84e4392cbdb9f1452fbb,
         type: 3}
-      propertyPath: markerOnBall1
-      value: 
-      objectReference: {fileID: 100000, guid: 261d651232003f74db64de4ffc13d25f, type: 3}
-    - target: {fileID: 6338887527519480172, guid: b28212317aad84e4392cbdb9f1452fbb,
-        type: 3}
-      propertyPath: markerOnBall2
-      value: 
-      objectReference: {fileID: 100000, guid: 261d651232003f74db64de4ffc13d25f, type: 3}
-    - target: {fileID: 6338887527519480172, guid: b28212317aad84e4392cbdb9f1452fbb,
-        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 6338887527519480172, guid: b28212317aad84e4392cbdb9f1452fbb,

@@ -281,7 +281,6 @@ public class BilliardsModule : UdonSharpBehaviour
     // [NonSerialized] public bool isJp4Ball = false;
     // [NonSerialized] public bool isKr4Ball = false;
     // [NonSerialized] public bool isSnooker6Red = false;
-    [NonSerialized] public bool isPocketBlocked = false;
     [NonSerialized] public bool isPracticeMode = false;
     [NonSerialized] public bool isPlayer = false;
     [NonSerialized] public bool isOrangeTeamFull = false;

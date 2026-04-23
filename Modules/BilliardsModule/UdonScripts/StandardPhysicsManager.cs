@@ -482,7 +482,7 @@ public class StandardPhysicsManager : UdonSharpBehaviour
 
                 // The balls are touching!
                 // If they are same number (fruit), they merge
-                if (table.isSuika12 && i == id + 1 && ((0x1U << (id - 1)) & sn_pocketed) != 0U)
+                if (table.isSuika12 && i == id + 1 && ((0x1U << (id - 1)) & (sn_pocketed | 0x1U)) != 0U)
                 {
                     // static resolution - merged ball is the average position
                     balls_P[i] = (balls_P[i] + balls_P[id]) * 0.5f;
