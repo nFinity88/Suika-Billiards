@@ -982,11 +982,6 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 6338887527519480172, guid: b28212317aad84e4392cbdb9f1452fbb,
         type: 3}
-    - target: {fileID: 6338887527519480172, guid: b28212317aad84e4392cbdb9f1452fbb,
-        type: 3}
-      propertyPath: textureSets.Array.data[1]
-      value: 
-      objectReference: {fileID: 2800000, guid: ea465bb0019eb754099d618bf494b51e, type: 3}
     - target: {fileID: 6584396154955782145, guid: b28212317aad84e4392cbdb9f1452fbb,
         type: 3}
       propertyPath: serializationData.Prefab
