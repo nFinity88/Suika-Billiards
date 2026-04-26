@@ -101,7 +101,7 @@ public class BilliardsModule : UdonSharpBehaviour
     private readonly int[] sixredsnooker_ballpoints = { 0, 7, 2, 5, 1, 6, 1, 3, 4, 1, 1, 1, 1 };
     private readonly int[] break_order_sixredsnooker = { 4, 6, 9, 10, 11, 12, 2, 7, 8, 3, 5, 1 };
     private readonly int[] break_order_8ball = { 9, 2, 10, 11, 1, 3, 4, 12, 5, 13, 14, 6, 15, 7, 8 };
-    private readonly int[] break_order_suika12 = { 1, 9, 8, 7, 2, 6, 4, 10, 3, 5, 11, 12 };
+    private readonly int[] break_order_suika12 = { 1, 9, 8, 7, 12, 6, 4, 10, 3, 5, 11, 2 };
     private readonly int[] break_rows_suika12 = { 1, 2, 3, 4, 1, 0, 1 };
 
     #region InspectorValues
@@ -167,6 +167,7 @@ public class BilliardsModule : UdonSharpBehaviour
 
     // GameObjects
     [SerializeField] public GameObject[] balls;
+    [SerializeField] public Mesh[] ballMeshes;
     [SerializeField] public GameObject guideline;
     [SerializeField] public GameObject guideline2;
     [SerializeField] public GameObject devhit;
@@ -549,6 +550,15 @@ public class BilliardsModule : UdonSharpBehaviour
         {
             _LogYes("starting game");
         }
+
+        if (gameModeLocal == 1) // Suika 12
+        {
+            for (int i = 2; i < 12; ++i)
+            {
+                balls[i].GetComponent<MeshFilter>().mesh = ballMeshes[i - 2];
+            }
+        }
+
         //0 is 8ball, 1 is 9ball, 2 is jp4b, 3 is kr4b, 4 is Snooker6Red)
         Vector3[] randomPositions = new Vector3[16];
         Array.Copy(initialPositions[gameModeLocal], randomPositions, 16);
@@ -579,16 +589,12 @@ public class BilliardsModule : UdonSharpBehaviour
                     }
                     break;
                 case 1:
-                    // 9ball
-                    for (int i = 1; i < 9; i++)
+                    // Suika 12
+                    for (int i = 3; i < 12; i++)
                     {
-                        // don't move the 1 or 9 balls
-                        if (i == 2 || i == 9) continue;
+                        // don't move either cherry (1, 2) or the suika (12)
+                        int rand = UnityEngine.Random.Range(3, 11);
                         Vector3 temp = randomPositions[i];
-                        int rand = UnityEngine.Random.Range(1, 9);
-                        while (rand == 2 || rand == 9)
-                            rand = UnityEngine.Random.Range(1, 9);
-
                         randomPositions[i] = randomPositions[rand];
                         randomPositions[rand] = temp;
                     }
@@ -1423,6 +1429,18 @@ public class BilliardsModule : UdonSharpBehaviour
         ballsW[id] = Vector3.zero;
     }
 
+    public void _TriggerUpgradeBall(int id)
+    {
+        if (isSuika12)
+        {
+            if (id < 12) {
+                balls[id].GetComponent<MeshFilter>().mesh = ballMeshes[id - 1];
+            } else {
+                _TriggerPocketBall(id, false);
+            }
+        }
+    }
+
     public void _TriggerJumpShotFoul() { jumpShotFoul = true; }
     public void _TriggerBallFallOffFoul() { fallOffFoul = true; }
 
@@ -1738,7 +1756,7 @@ public class BilliardsModule : UdonSharpBehaviour
         }
 
         {
-            // 9 ball
+            // Suika 12
             initialBallsPocketed[1] = 0xE000u;
 
             for (int i = 0, k = 0; i < 7; i++)
@@ -1750,7 +1768,7 @@ public class BilliardsModule : UdonSharpBehaviour
                     (
                        quarterTable - (k_BALL_PL_Y * 2) + i * k_BALL_PL_Y /* + UnityEngine.Random.Range(-k_RANDOMIZE_F, k_RANDOMIZE_F) */,
                        0.0f,
-                       (-rown + j * 2) * k_BALL_PL_X /* + UnityEngine.Random.Range(-k_RANDOMIZE_F, k_RANDOMIZE_F) */
+                       (1 - rown + j * 2) * k_BALL_PL_X /* + UnityEngine.Random.Range(-k_RANDOMIZE_F, k_RANDOMIZE_F) */
                     );
                 }
             }
@@ -2474,16 +2492,7 @@ public class BilliardsModule : UdonSharpBehaviour
 
     public int findLowestUnpocketedBall(uint field)
     {
-        for (int i = 2; i <= 8; i++)
-        {
-            if (((field >> i) & 0x1U) == 0x00U)
-                return i;
-        }
-
-        if (((field) & 0x2U) == 0x00U)
-            return 1;
-
-        for (int i = 9; i < 16; i++)
+        for (int i = 1; i <= 12; i++)
         {
             if (((field >> i) & 0x1U) == 0x00U)
                 return i;
