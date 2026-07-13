@@ -37,32 +37,39 @@ Some rule considerations:
 - Is making two watermelons on your own and merging them a win, or do you need to use the starting watermelon? (Granted the former method would probably take a lot longer)
 - Always having ball-in-hand makes a foul inconsequential (versus normal turn ending due to failure to merge a ball). But there are fewer ways to foul since there's no cue ball.
 
-## Usage  
-  
-### Setup:  
-Import the package  
-Click MS-VRCSA->Set Up Pool Table Layers  
-	- this names layer 22 to 'BilliardsModule' and sets the collision matrix so that it only collides with itself  
-Place one or more Prefab/MS-VRCA Table prefabs into your scene  
-You can freely add/remove tables from the tables list under the hierarchy at BilliardsModule/intl.table/  
-	- The table prefabs are in the folder Modules/BilliardsModule/Prefabs  
-Because tables can be swapped out they can't easily be lightmapped. Use just one table if you wish to have light mapping  
-	- Remove the unused tables from the hierarchy under BilliardsModule/intl.table/  
-Alternatively if using VRC Light Volumes by RED_SIM, make sure to change the table surface shader to the _VRCLV Variant.  
-  
-### Table Creation  
-Duplicate an existing table prefab and replace the mesh ('table' object) with your own.  
-Place the table prefab on its own in to the scene and select and enable gizmos it to display its physical setup, adjust ModelData settings to match your model.  
-Copy the hierarchy of the existing tables and you should be fine, objects whose name begin with a period are used in the code, so don't change their names.  
-The shader for the table's Metallic/Smoothness texture can be exported as a 2 channel png with photoshop's Export As and ticking the '[x]Smaller Filer (8-bit)' option  
-  
-## Credits  
-Neko Mabel:  
-- Ball-cushion collision function, ball-to-ball collision, rolling, and bounce functions  
-- Deep knowledge about all things billiards related  
-  
-Sacchan:  
-- Everything else in the MS-VRCSA Billiards table
+## Usage
 
+### Setup:
+Import the package
+
+Click MS-VRCSA->Set Up Pool Table Layers
+	- this names layer 22 to 'BilliardsModule' and sets the collision matrix so that it only collides with itself
+
+Place one or more Prefab/MS-VRCA Table prefabs into your scene. You can freely add/remove tables from the tables list under the hierarchy at BilliardsModule/intl.table/
+	- The table prefabs are in the folder Modules/BilliardsModule/Prefabs
+
+Because tables can be swapped out they can't easily be lightmapped. Use just one table if you wish to have light mapping
+	- Remove the unused tables from the hierarchy under BilliardsModule/intl.table/
+
+Alternatively if using VRC Light Volumes by RED_SIM, make sure to change the table surface shader to the _VRCLV Variant.
+
+### Table Creation
+
+Duplicate an existing table prefab and replace the mesh ('table' object) with your own.
+
+Place the table prefab on its own in to the scene and select and enable gizmos it to display its physical setup, adjust ModelData settings to match your model.
+
+Copy the hierarchy of the existing tables and you should be fine, objects whose name begin with a period are used in the code, so don't change their names.
+
+The shader for the table's Metallic/Smoothness texture can be exported as a 2 channel png with photoshop's Export As and ticking the '[x]Smaller Filer (8-bit)' option
+
+## Credits  
 nFinity8:
-- Suika gameplay, ball-merging physics
+- Suika gameplay, ball-merging physics, and Suika-themed texture set
+
+Neko Mabel:
+- Ball-cushion collision function, ball-to-ball collision, rolling, and bounce functions
+- Deep knowledge about all things billiards related
+
+Sacchan:
+- Everything else in the MS-VRCSA Billiards table
