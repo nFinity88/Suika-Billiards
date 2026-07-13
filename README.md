@@ -43,13 +43,13 @@ Some rule considerations:
 Import the package
 
 Click MS-VRCSA->Set Up Pool Table Layers
-	- this names layer 22 to 'BilliardsModule' and sets the collision matrix so that it only collides with itself
+- this names layer 22 to 'BilliardsModule' and sets the collision matrix so that it only collides with itself
 
 Place one or more Prefab/MS-VRCA Table prefabs into your scene. You can freely add/remove tables from the tables list under the hierarchy at BilliardsModule/intl.table/
-	- The table prefabs are in the folder Modules/BilliardsModule/Prefabs
+- The table prefabs are in the folder Modules/BilliardsModule/Prefabs
 
 Because tables can be swapped out they can't easily be lightmapped. Use just one table if you wish to have light mapping
-	- Remove the unused tables from the hierarchy under BilliardsModule/intl.table/
+- Remove the unused tables from the hierarchy under BilliardsModule/intl.table/
 
 Alternatively if using VRC Light Volumes by RED_SIM, make sure to change the table surface shader to the _VRCLV Variant.
 
