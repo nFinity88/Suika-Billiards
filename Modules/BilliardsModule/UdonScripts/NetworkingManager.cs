@@ -12,6 +12,9 @@ public class NetworkingManager : UdonSharpBehaviour
     // players in the game - this field should only be updated by the host, stored in the zeroth position
     [UdonSynced][NonSerialized] public int[] playerIDsSynced = { -1, -1, -1, -1 };
 
+    // ball IDs
+    [UdonSynced][NonSerialized] public byte[] ballIdsSynced = new byte[MAX_BALLS];
+
     // ball positions
     [UdonSynced][NonSerialized] public Vector3[] ballsPSynced = new Vector3[MAX_BALLS];
 
@@ -23,9 +26,6 @@ public class NetworkingManager : UdonSharpBehaviour
 
     // the current state id - this value should increment monotonically, with each id representing a distinct state that's worth snapshotting
     [UdonSynced][NonSerialized] public ushort stateIdSynced;
-
-    // bitmask of pocketed balls
-    [UdonSynced][NonSerialized] public ushort ballsPocketedSynced;
 
     // the current team which is playing
     [UdonSynced][NonSerialized] public byte teamIdSynced;
@@ -228,11 +228,11 @@ public class NetworkingManager : UdonSharpBehaviour
         bufferMessages(true);
     }
 
-    public void _OnSimulationEnded(Vector3[] ballsP, uint ballsPocketed, byte[] fbScores, bool colorTurnLocal)
+    public void _OnSimulationEnded(byte[] ballIds, Vector3[] ballsP, uint ballsPocketed, byte[] fbScores, bool colorTurnLocal)
     {
-        Array.Copy(ballsP, ballsPSynced, MAX_BALLS);
+        Array.Copy(ballIds, ballIdsSynced, ballIds.Length);
+        Array.Copy(ballsP, ballsPSynced, ballsP.Length);
         Array.Copy(fbScores, fourBallScoresSynced, 2);
-        ballsPocketedSynced = (ushort)ballsPocketed;
         colorTurnSynced = colorTurnLocal;
 
         bufferMessages(false);
@@ -246,7 +246,6 @@ public class NetworkingManager : UdonSharpBehaviour
         turnStateSynced = 0;
         foulStateSynced = 0;
         timerStartSynced = Networking.GetServerTimeInMilliseconds();
-        swapFourBallCueBalls();
 
         bufferMessages(false);
     }
@@ -277,7 +276,6 @@ public class NetworkingManager : UdonSharpBehaviour
         }
         else
             foulStateSynced = 2;
-        swapFourBallCueBalls();
 
         bufferMessages(false);
     }
@@ -353,12 +351,11 @@ public class NetworkingManager : UdonSharpBehaviour
         bufferMessages(false);
     }
 
-    public void _OnGameStart(uint defaultBallsPocketed, Vector3[] ballPositions)
+    public void _OnGameStart(Vector3[] ballPositions)
     {
         stateIdSynced++;
 
         gameStateSynced = 2;
-        ballsPocketedSynced = (ushort)defaultBallsPocketed;
         //reposition state
         foulStateSynced = 1;
         colorTurnSynced = table.isSuikaPool || table.isSuika12;
@@ -540,14 +537,16 @@ public class NetworkingManager : UdonSharpBehaviour
     public void _ForceLoadFromState
     (
         int stateIdLocal,
-        Vector3[] newBallsP, uint ballsPocketed, byte[] newScores, uint gameMode, uint teamId, uint foulState, bool isTableOpen, uint teamColor, uint fourBallCueBall,
+        byte[] newBallIds, Vector3[] newBallsP, byte[] newScores, uint gameMode, uint teamId, uint foulState, bool isTableOpen, uint teamColor, uint fourBallCueBall,
         byte turnStateLocal, Vector3 cueBallV, Vector3 cueBallW, bool colorTurn
     )
     {
         stateIdSynced = (ushort)stateIdLocal;
 
-        Array.Copy(newBallsP, ballsPSynced, MAX_BALLS);
-        ballsPocketedSynced = (ushort)ballsPocketed;
+        if (ballIdsSynced.Length < newBallIds.Length) ballIdsSynced = new byte[newBallIds.Length];
+        Array.Copy(newBallIds, ballIdsSynced, newBallIds.Length);
+        if (ballsPSynced.Length < newBallsP.Length) ballsPSynced = new Vector3[newBallsP.Length];
+        Array.Copy(newBallsP, ballsPSynced, newBallsP.Length);
         Array.Copy(newScores, fourBallScoresSynced, 2);
         gameModeSynced = (byte)gameMode;
         teamIdSynced = (byte)teamId;
@@ -573,17 +572,6 @@ public class NetworkingManager : UdonSharpBehaviour
         tableModelSynced = newTableModel;
 
         bufferMessages(false);
-    }
-
-    private void swapFourBallCueBalls()
-    {
-        if (gameModeSynced != 2 && gameModeSynced != 3) return;
-
-        fourBallCueBallSynced ^= 0x01;
-
-        Vector3 temp = ballsPSynced[0];
-        ballsPSynced[0] = ballsPSynced[13];
-        ballsPSynced[13] = temp;
     }
 
     private void bufferMessages(bool urgent)
@@ -706,108 +694,18 @@ public class NetworkingManager : UdonSharpBehaviour
         {
             onLoadGameStateV3(gameStateStr.Substring(3));
         }
-        else if (gameStateStr.StartsWith("v2:"))
-        {
-            onLoadGameStateV2(gameStateStr.Substring(3));
-        }
-        else if (gameStateStr.StartsWith("v1:"))
-        {
-            onLoadGameStateV1(gameStateStr.Substring(3));
-        }
-        else
-        {
-            onLoadGameStateV1(gameStateStr);
-        }
-    }
-
-    private void onLoadGameStateV1(string gameStateStr)
-    {
-        if (!isValidBase64(gameStateStr)) return;
-
-        byte[] gameState = Convert.FromBase64String(gameStateStr);
-        if (gameState.Length != 0x54) return;
-
-        stateIdSynced++;
-
-        for (int i = 0; i < 16; i++)
-        {
-            ballsPSynced[i] = decodeVec3Full(gameState, i * 4, 2.5f);
-        }
-        cueBallVSynced = decodeVec3Full(gameState, 0x40, 50.0f);
-        cueBallWSynced = decodeVec3Full(gameState, 0x46, 500.0f);
-
-        uint spec = decodeU16(gameState, 0x4C);
-        uint state = decodeU16(gameState, 0x4E);
-        turnStateSynced = (byte)((state & 0x1u) == 0x1u ? 1 : 0);
-        teamIdSynced = (byte)((state & 0x2u) >> 1);
-        foulStateSynced = (byte)((state & 0x4u) == 0x4u ? 1 : 0);
-        isTableOpenSynced = (state & 0x8u) == 0x8u;
-        teamColorSynced = (byte)((state & 0x10u) >> 4);
-        gameModeSynced = (byte)((state & 0x700u) >> 8);
-        uint timerSetting = (state & 0x6000u) >> 13;
-        switch (timerSetting)
-        {
-            case 0:
-                timerSynced = 0;
-                break;
-            case 1:
-                timerSynced = 60;
-                break;
-            case 2:
-                timerSynced = 30;
-                break;
-            case 3:
-                timerSynced = 15;
-                break;
-        }
-        timerStartSynced = Networking.GetServerTimeInMilliseconds();
-        teamsSynced = (state & 0x8000u) == 0x8000u;
-
-        if (gameModeSynced == 2)
-        {
-            fourBallScoresSynced[0] = (byte)(spec & 0x0fu);
-            fourBallScoresSynced[1] = (byte)((spec & 0x0fu) >> 4);
-            if ((spec & 0x100u) == 0x100u) gameModeSynced = 3;
-        }
-        else
-        {
-            ballsPocketedSynced = (ushort)spec;
-        }
-
-        bufferMessages(true);
-    }
-
-    private void onLoadGameStateV2(string gameStateStr)
-    {
-        if (!isValidBase64(gameStateStr)) return;
-
-        byte[] gameState = Convert.FromBase64String(gameStateStr);
-        if (gameState.Length != 0x7b) return;
-
-        stateIdSynced++;
-
-        for (int i = 0; i < 16; i++)
-        {
-            ballsPSynced[i] = decodeVec3Full(gameState, i * 6, 2.5f);
-        }
-        cueBallVSynced = decodeVec3Full(gameState, 0x60, 50.0f);
-        cueBallWSynced = decodeVec3Full(gameState, 0x66, 500.0f);
-
-        ballsPocketedSynced = decodeU16(gameState, 0x6C);
-        teamIdSynced = gameState[0x6E];
-        foulStateSynced = gameState[0x6F];
-        isTableOpenSynced = gameState[0x70] != 0;
-        teamColorSynced = gameState[0x71];
-        turnStateSynced = gameState[0x72];
-        gameModeSynced = gameState[0x73];
-        timerSynced = gameState[0x75]; // timer was recently changed to a byte, that's why this skips 1
-        teamsSynced = gameState[0x76] != 0;
-        fourBallScoresSynced[0] = gameState[0x77];
-        fourBallScoresSynced[1] = gameState[0x78];
-        fourBallCueBallSynced = gameState[0x79];
-        colorTurnSynced = gameState[0x7a] != 0;
-
-        bufferMessages(true);
+        // else if (gameStateStr.StartsWith("v2:"))
+        // {
+        //     onLoadGameStateV2(gameStateStr.Substring(3));
+        // }
+        // else if (gameStateStr.StartsWith("v1:"))
+        // {
+        //     onLoadGameStateV1(gameStateStr.Substring(3));
+        // }
+        // else
+        // {
+        //     onLoadGameStateV1(gameStateStr);
+        // }
     }
 
     // V3 no longer encodes floats to shorts, as the string isn't synced it doesn't matter how long it is

@@ -122,6 +122,14 @@ public class StandardPhysicsManager : UdonSharpBehaviour
         balls_W = table.ballsW;
     }
 
+    public void _UpdatePointers()
+    {
+        balls = table.balls;
+        balls_P = table.ballsP;
+        balls_V = table.ballsV;
+        balls_W = table.ballsW;
+    }
+
     public void _FixedTick()
     {
         float now = Time.timeSinceLevelLoad;
@@ -656,6 +664,12 @@ public class StandardPhysicsManager : UdonSharpBehaviour
     public void _ResetSimulationVariables()
     {
         jumpShotFlewOver = cueBallHasCollided = false;
+
+        if (balls_P.Length < balls_V.Length)
+        {
+            balls_V = new Vector3[balls_P.Length];
+            balls_W = new Vector3[balls_P.Length];
+        }
     }
 
     private void ModifyAudioProperties(int id, GameObject Ball)

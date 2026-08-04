@@ -65,7 +65,7 @@ public class GraphicsManager : UdonSharpBehaviour
     private bool shadowsDisabled;
 
     private GameObject[] balls;
-    private Transform[] ballTransforms;
+    private byte[] ballIds;
     private Vector3[] ballPositions;
 
     public void _Init(BilliardsModule table_)
@@ -74,13 +74,8 @@ public class GraphicsManager : UdonSharpBehaviour
 
         // copy some temporaries
         balls = table.balls;
+        ballIds = table.ballIdsLocal;
         ballPositions = table.ballsP;
-
-        ballTransforms = new Transform[balls.Length];
-        for (int i = 0; i < balls.Length; i++)
-        {
-            ballTransforms[i] = balls[i].transform;
-        }
 
         winnerText_go = winnerText.gameObject;
 
@@ -105,6 +100,13 @@ public class GraphicsManager : UdonSharpBehaviour
         {
             meshOverrideRegular[i + 1] = balls[13 + i].GetComponent<MeshFilter>().sharedMesh;
         }
+    }
+
+    public void _UpdatePointers()
+    {
+        balls = table.balls;
+        ballIds = table.ballIdsLocal;
+        ballPositions = table.ballsP;
     }
 
     public void _InitializeTable()
@@ -139,16 +141,12 @@ public class GraphicsManager : UdonSharpBehaviour
     {
         if (!table.gameLive) return;
 
-        uint ball_bit = 0x1u;
-        uint pocketed = table.ballsPocketedLocal;
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < balls.Length; i++)
         {
-            if ((ball_bit & pocketed) == 0x0u)
+            if (ballIds[i] != 0)
             {
-                ballTransforms[i].localPosition = ballPositions[i];
+                balls[i].transform.localPosition = ballPositions[i];
             }
-
-            ball_bit <<= 1;
         }
     }
 
@@ -714,26 +712,26 @@ int uniform_cue_colour;
     }
 
     // Finalize positions onto their rack spots
-    public void _RackBalls()
-    {
-        uint ball_bit = 0x1u;
-
-        for (int i = 0; i < 16; i++)
-        {
-            table.balls[i].GetComponent<Rigidbody>().isKinematic = true;
-
-            if ((ball_bit & table.ballsPocketedLocal) == ball_bit)
-            {
-                // Recover Y position since its lost in networking
-                Vector3 rack_position = table.ballsP[i];
-                rack_position.y = table.k_rack_position.y;
-
-                table.balls[i].transform.localPosition = rack_position;
-            }
-
-            ball_bit <<= 1;
-        }
-    }
+    // public void _RackBalls()
+    // {
+    //     uint ball_bit = 0x1u;
+    //
+    //     for (int i = 0; i < 16; i++)
+    //     {
+    //         table.balls[i].GetComponent<Rigidbody>().isKinematic = true;
+    //
+    //         if ((ball_bit & table.ballsPocketedLocal) == ball_bit)
+    //         {
+    //             // Recover Y position since its lost in networking
+    //             Vector3 rack_position = table.ballsP[i];
+    //             rack_position.y = table.k_rack_position.y;
+    //
+    //             table.balls[i].transform.localPosition = rack_position;
+    //         }
+    //
+    //         ball_bit <<= 1;
+    //     }
+    // }
 
     public void _UpdateLOD()
     {
@@ -754,7 +752,7 @@ int uniform_cue_colour;
             {
                 _OnGameStarted(); // make sure all visuals are set
 
-                scorecard_gameobject.SetActive(true);
+                // scorecard_gameobject.SetActive(true);
                 for (int i = 0; i < playerNames.Length; i++)
                 {
                     playerNames[i].gameObject.SetActive(true);
@@ -771,67 +769,67 @@ int uniform_cue_colour;
                 //     blueScore.gameObject.SetActive(false);
                 //     snookerInstruction.gameObject.SetActive(false);
                 // }
-                _UpdateScorecard();
+                // _UpdateScorecard();
             }
         }
         _RefreshTimers();
     }
 
-    public void _UpdateScorecard()
-    {
-        if (table.localPlayerDistant) return;
-
-        int[] counter0 = new int[2];
-
-        uint temp = table.ballsPocketedLocal;
-
-        for (int j = 0; j < 2; j++)
-        {
-            int counter = 0;
-            int idx = (int)(j ^ table.teamColorLocal);
-            for (int i = 0; i < 7; i++)
-            {
-                if ((temp & 0x4) > 0)
-                {
-                    counter0[idx]++;
-                    // if (usColors)
-                    // {
-                    //     if (idx == 0) scorecardColors[counter] = usColorArr[i];
-                    //     else if (idx == 1) scorecardColors[14 - counter] = usColorArr[i];
-                    //     counter++;
-                    // }
-                }
-
-                temp >>= 1;
-            }
-
-            // Add black ball if we are winning the thing
-            // if (!table.gameLive && table.winningTeamLocal < 2)
-            // {
-            //     counter0[table.winningTeamLocal] += (int)((table.ballsPocketedLocal & 0x2) >> 1);
-            //     if (!usColors)
-            //     {
-            //         scorecardColors[7] = (table.winningTeamLocal == table.teamColorLocal ? pColour0 : pColour1) / 1.5f;
-            //     }
-            //     else
-            //     {
-            //         scorecardColors[7] = Color.white * 0.1f;
-            //     }
-            // }
-            scorecard.SetInt("_LeftScore", counter0[0]);
-            scorecard.SetInt("_RightScore", counter0[1]);
-            scorecard.SetColorArray("_Colors", scorecardColors);
-
-            if (table.isTableOpenLocal)
-            {
-                scorecard.SetInt("_SolidsMode", 0);
-            }
-            else
-            {
-                scorecard.SetInt("_SolidsMode", table.teamColorLocal == 0 ? 1 : 2);
-            }
-        }
-    }
+    // public void _UpdateScorecard()
+    // {
+    //     if (table.localPlayerDistant) return;
+    //
+    //     int[] counter0 = new int[2];
+    //
+    //     uint temp = table.ballsPocketedLocal;
+    //
+    //     for (int j = 0; j < 2; j++)
+    //     {
+    //         int counter = 0;
+    //         int idx = (int)(j ^ table.teamColorLocal);
+    //         for (int i = 0; i < 7; i++)
+    //         {
+    //             if ((temp & 0x4) > 0)
+    //             {
+    //                 counter0[idx]++;
+    //                 // if (usColors)
+    //                 // {
+    //                 //     if (idx == 0) scorecardColors[counter] = usColorArr[i];
+    //                 //     else if (idx == 1) scorecardColors[14 - counter] = usColorArr[i];
+    //                 //     counter++;
+    //                 // }
+    //             }
+    //
+    //             temp >>= 1;
+    //         }
+    //
+    //         // Add black ball if we are winning the thing
+    //         // if (!table.gameLive && table.winningTeamLocal < 2)
+    //         // {
+    //         //     counter0[table.winningTeamLocal] += (int)((table.ballsPocketedLocal & 0x2) >> 1);
+    //         //     if (!usColors)
+    //         //     {
+    //         //         scorecardColors[7] = (table.winningTeamLocal == table.teamColorLocal ? pColour0 : pColour1) / 1.5f;
+    //         //     }
+    //         //     else
+    //         //     {
+    //         //         scorecardColors[7] = Color.white * 0.1f;
+    //         //     }
+    //         // }
+    //         scorecard.SetInt("_LeftScore", counter0[0]);
+    //         scorecard.SetInt("_RightScore", counter0[1]);
+    //         scorecard.SetColorArray("_Colors", scorecardColors);
+    //
+    //         if (table.isTableOpenLocal)
+    //         {
+    //             scorecard.SetInt("_SolidsMode", 0);
+    //         }
+    //         else
+    //         {
+    //             scorecard.SetInt("_SolidsMode", table.teamColorLocal == 0 ? 1 : 2);
+    //         }
+    //     }
+    // }
 
     // public void _UpdateFourBallCueBallTextures(uint fourBallCueBall)
     // {
