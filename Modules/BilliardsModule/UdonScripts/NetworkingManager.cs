@@ -228,9 +228,14 @@ public class NetworkingManager : UdonSharpBehaviour
         bufferMessages(true);
     }
 
-    public void _OnSimulationEnded(byte[] ballIds, Vector3[] ballsP, uint ballsPocketed, byte[] fbScores, bool colorTurnLocal)
+    public void _OnSimulationEnded(Vector3[] ballsP, byte[] ballIds, byte[] fbScores, bool colorTurnLocal)
     {
+        int numBalls = ballIds.Length;
+        if (numBalls > ballIdsSynced.Length)
+            ballIdsSynced = new byte[numBalls];
         Array.Copy(ballIds, ballIdsSynced, ballIds.Length);
+        if (numBalls > ballsPSynced.Length)
+            ballsPSynced = new Vector3[numBalls];
         Array.Copy(ballsP, ballsPSynced, ballsP.Length);
         Array.Copy(fbScores, fourBallScoresSynced, 2);
         colorTurnSynced = colorTurnLocal;
@@ -537,7 +542,7 @@ public class NetworkingManager : UdonSharpBehaviour
     public void _ForceLoadFromState
     (
         int stateIdLocal,
-        byte[] newBallIds, Vector3[] newBallsP, byte[] newScores, uint gameMode, uint teamId, uint foulState, bool isTableOpen, uint teamColor, uint fourBallCueBall,
+        Vector3[] newBallsP, byte[] newBallIds, byte[] newScores, uint gameMode, uint teamId, uint foulState, bool isTableOpen, uint teamColor, uint fourBallCueBall,
         byte turnStateLocal, Vector3 cueBallV, Vector3 cueBallW, bool colorTurn
     )
     {
@@ -613,6 +618,19 @@ public class NetworkingManager : UdonSharpBehaviour
     private ushort decodeU16(byte[] data, int pos)
     {
         return (ushort)(data[pos] | (((uint)data[pos + 1]) << 8));
+    }
+
+    private void encodeInt(byte[] data, int pos, int v)
+    {
+        data[pos] = (byte)(v & 0x000f);
+        data[pos + 1] = (byte)((v >> 8) & 0x000f);
+        data[pos + 2] = (byte)((v >> 16) & 0x000f);
+        data[pos + 3] = (byte)((v >> 24) & 0x000f);
+    }
+
+    private int decodeInt(byte[] data, int pos)
+    {
+        return (data[pos + 3] << 24) | (data[pos + 2] << 16) | (data[pos + 1] << 8) | data[pos];
     }
 
     // 6 char string from Vector3. Encodes floats in: [ -range, range ] to 0-65535
@@ -710,19 +728,22 @@ public class NetworkingManager : UdonSharpBehaviour
 
     // V3 no longer encodes floats to shorts, as the string isn't synced it doesn't matter how long it is
     // ensures perfect replication of shots
-    uint gameStateLength = 230u;
     private void onLoadGameStateV3(string gameStateStr)
     {
         if (!isValidBase64(gameStateStr)) return;
 
         byte[] gameState = Convert.FromBase64String(gameStateStr);
-        if (gameState.Length != gameStateLength) return;
 
         stateIdSynced++;
 
         int encodePos = 0; // Add the size of the loaded type in bytes after loading
 
-        for (int i = 0; i < 16; i++)
+        int numBalls = decodeInt(gameState, encodePos);
+        encodePos += 4;
+
+        if (numBalls > ballsPSynced.Length)
+            ballsPSynced = new Vector3[numBalls];
+        for (int i = 0; i < numBalls; i++)
         {
             ballsPSynced[i] = bytesToVec3(gameState, encodePos);
             encodePos += 12;
@@ -732,8 +753,13 @@ public class NetworkingManager : UdonSharpBehaviour
         cueBallWSynced = bytesToVec3(gameState, encodePos);
         encodePos += 12;
 
-        ballsPocketedSynced = decodeU16(gameState, encodePos);
-        encodePos += 2;
+        if (numBalls < ballIdsSynced.Length)
+            ballIdsSynced = new byte[numBalls];
+        for (int i = 0; i < numBalls; i++)
+        {
+            ballIdsSynced[i] = gameState[encodePos];
+            ++encodePos;
+        }
         teamIdSynced = gameState[encodePos];
         encodePos += 1;
         foulStateSynced = gameState[encodePos];
@@ -762,9 +788,13 @@ public class NetworkingManager : UdonSharpBehaviour
 
     public string _EncodeGameState()
     {
-        byte[] gameState = new byte[gameStateLength];
+        int numBalls = ballIdsSynced.Length;
+        byte[] gameState = new byte[13 * numBalls + 40];
         int encodePos = 0; // Add the size of the recorded type in bytes after recording
-        for (int i = 0; i < 16; i++)
+
+        encodeInt(gameState, encodePos, numBalls);
+        encodePos += 4;
+        for (int i = 0; i < numBalls; i++)
         {
             Vec3ToBytes(gameState, encodePos, ballsPSynced[i]);
             encodePos += 12;
@@ -774,8 +804,11 @@ public class NetworkingManager : UdonSharpBehaviour
         Vec3ToBytes(gameState, encodePos, cueBallWSynced);
         encodePos += 12;
 
-        encodeU16(gameState, encodePos, (ushort)(ballsPocketedSynced & 0xFFFFu));
-        encodePos += 2;
+        for (int i = 0; i < numBalls; i++)
+        {
+            gameState[encodePos] = ballIdsSynced[i];
+            encodePos++;
+        }
         gameState[encodePos] = teamIdSynced;
         encodePos += 1;
         gameState[encodePos] = foulStateSynced;

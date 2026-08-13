@@ -331,7 +331,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
     {
         bool ballsMoving = false;
 
-        uint sn_pocketed = table.ballsPocketedLocal;
+        byte[] ballIds = table.ballIdsLocal;
 
         // Cue angular velocity
         table._BeginPerf(table.PERF_PHYSICS_BALL);
@@ -340,7 +340,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
 #if UNITY_EDITOR
         if (Test_Mode)
         {
-            if ((sn_pocketed & 0x1U) == 0) // Cue ball is not pocketed
+            if (ballIds[0] != 0) // Cue ball is not pocketed
             {
                 int Wi = Input.GetKey(KeyCode.W) ? 1 : 0; //inputs as ints
                 int Si = Input.GetKey(KeyCode.S) ? -1 : 0;
@@ -364,9 +364,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
 #endif
 
         // Run main simulation / inter-ball collision
-
-        uint ball_bit = 0x1u;
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < ballIds.Length; i++)
         {
             float moveTimeLeft = k_FIXED_TIME_STEP;
             int collidedBall = -1; // used to stop from colliding with the same ball twice in one step
@@ -375,7 +373,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
             while (moveTimeLeft > 0f)
             {
                 numSteps++;
-                if ((ball_bit & sn_pocketed) == 0U)
+                if (ballIds[i] != 0)
                 {
                     float deltaTime = moveTimeLeft;
                     Vector3 ballStartPos = balls_P[i];
@@ -383,7 +381,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
                     float expectedMoveDistance = (balls_V[i] * deltaTime).magnitude;
                     if (expectedMoveDistance != 0)
                     {
-                        Vector3 deltaPos = calculateDeltaPosition(sn_pocketed, i, deltaTime, ref predictedHitBall, collidedBall > -2, balls_inPocketBounds[i]);
+                        Vector3 deltaPos = calculateDeltaPosition(ballIds, i, deltaTime, ref predictedHitBall, collidedBall > -2, balls_inPocketBounds[i]);
                         balls_P[i] += deltaPos;
                     }
 
@@ -449,7 +447,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
 
                             // because the ball predicted to collide with is now always added to the list of collision checks
                             // we don't need to run collision checks on balls that aren't moving
-                            if (doColCheck) { stepOneBall(i, sn_pocketed, moved); }
+                            if (doColCheck) { stepOneBall(i, ballIds, moved); }
 
                             if (!balls_inBounds[i] && !moved[i] && !table.isPracticeMode)
                             {
@@ -473,11 +471,8 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
                 }
                 if (numSteps > 2) break; // max 3 steps per ball // setting to max 1 step may introduce ball freeze bugs caused by calculateDeltaPosition()
             }
-            ball_bit <<= 1;
         }
         table._EndPerf(table.PERF_PHYSICS_BALL);
-
-        ball_bit = 0x1U;
 
         bool canCueBallBounceOffCushion = balls_P[0].y < k_BALL_RADIUS;
         // Check if simulation has settled
@@ -494,7 +489,7 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
     // This function predicts if the cue ball is about to hit another ball, and if it is, it teleports it
     // to the surface of that ball, instead of letting it clip into that ball
     // also checking against table cushion corner points and pockets
-    private Vector3 calculateDeltaPosition(uint sn_pocketed, int id, float timeStep, ref int predictedHitBall, bool doTable, bool inPocketBounds)
+    private Vector3 calculateDeltaPosition(byte[] ballIds, int id, float timeStep, ref int predictedHitBall, bool doTable, bool inPocketBounds)
     {
         Vector3 pos = balls_P[id];
         // Get what will be the next position
@@ -513,19 +508,14 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
         float minnmag = float.MaxValue;
 
         // Loop balls look for collisions
-        uint ball_bit = 0x1U;
-
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < ballIds.Length; i++)
         {
             if (i == id
-            || (ball_bit & sn_pocketed) != 0U
+            || ballIds[i] == 0
             || i == predictedHitBall) // prevent moving to the same ball twice in subsequent substeps as colliding with same ball again is not allowed
             {
-                ball_bit <<= 1;
                 continue;
             }
-
-            ball_bit <<= 1;
 
             h = balls_P[i] - pos;
 
@@ -800,27 +790,25 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
     }
     int[] ballsToCheck = new int[1];
     // Advance simulation 1 step for ball id
-    private void stepOneBall(int id, uint sn_pocketed, bool[] moved)
+    private void stepOneBall(int id, byte[] ballIds, bool[] moved)
     {
         GameObject g_ball_current = balls[id];
-        GameObject cueBall = balls[0];
-        GameObject nine_Ball = balls[9];
+        // GameObject cueBall = balls[0];
+        // GameObject nine_Ball = balls[9];
 
 
-        // ballDebugVisualizer(sn_pocketed, normal, id);
+        // ballDebugVisualizer(ballIds, normal, id);
 
 
         // Draw a debug line that could represent the normal velocity vector
         // Debug.DrawRay(cueBall.transform.position, nine_Ball.transform.position - cueBall.transform.position, Color.red);
 
         // check for collisions. a non-moving ball might be collided by a moving one
-        // uint ball_bit = 0x1U << ballsToCheck[0];
         for (int i = 0; i < ballsToCheck.Length; i++)
         {
             int checkBall = ballsToCheck[i];
-            uint ball_bit = 1u << checkBall;
 
-            if ((ball_bit & sn_pocketed) != 0U)
+            if (ballIds[checkBall] == 0)
             {
                 continue;
             }
@@ -1338,12 +1326,12 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
 
 
     /// DEBUG
-    void ballDebugVisualizer(uint sn_pocketed, Vector3 normal, int id)
+    void ballDebugVisualizer(byte[] ballIds, Vector3 normal, int id)
     {
-        for (int i = id; i < 16; i++)
+        for (int i = id; i < ballIds.Length; i++)
         {
             // Skip if the ball is pocketed
-            if (((0x1U << i) & sn_pocketed) != 0U)
+            if (ballIds[i] == 0)
                 continue;
 
             Vector3 relativeVelocity = balls_V[i] - balls_V[id];
@@ -1358,9 +1346,9 @@ public class AdvancedPhysicsManager : UdonSharpBehaviour
             //Debug.DrawLine(balls_P[0], balls_P[0] + velocityDirection.normalized * 8f, Color.blue, 2f);
 
             // Draw red lines from the center of the current ball to the center of every other ball
-            for (int j = 0; j < 16; j++)
+            for (int j = 0; j < ballIds.Length; j++)
             {
-                if (i != j && ((0x1U << j) & sn_pocketed) == 0U) // Skip the same ball and pocketed balls
+                if (i != j && ballIds[j] != 0) // Skip the same ball and pocketed balls
                 {
                     //Debug.DrawRay(ballCenter, balls_P[j] - ballCenter, Color.red);
 

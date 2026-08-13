@@ -315,13 +315,13 @@ public class StandardPhysicsManager : UdonSharpBehaviour
     {
         bool ballsMoving = false;
 
-        uint sn_pocketed = table.ballsPocketedLocal;
+        byte[] ballIds = table.ballIdsLocal;
 
         // Cue angular velocity
         table._BeginPerf(table.PERF_PHYSICS_BALL);
         bool[] moved = new bool[balls.Length];
 
-        if ((sn_pocketed & 0x1U) == 0)
+        if (ballIds[0] != 0)
         {
             if (balls_P[0].y < 0)
             {
@@ -330,21 +330,18 @@ public class StandardPhysicsManager : UdonSharpBehaviour
             }
 
             // Apply movement
-            Vector3 deltaPos = calculateDeltaPosition(sn_pocketed);
+            Vector3 deltaPos = calculateDeltaPosition(ballIds);
             balls_P[0] += deltaPos;
             moved[0] = deltaPos != Vector3.zero;
 
-            ballsMoving |= stepOneBall(0, sn_pocketed, moved);
+            ballsMoving |= stepOneBall(0, ballIds, moved);
         }
 
         // Run main simulation / inter-ball collision
 
-        uint ball_bit = 0x1u;
-        for (int i = 1; i < 16; i++)
+        for (int i = 1; i < ballIds.Length; i++)
         {
-            ball_bit <<= 1;
-
-            if ((ball_bit & sn_pocketed) == 0U)
+            if (ballIds[i] != 0)
             {
                 balls_V[i].y = 0;
                 balls_P[i].y = 0;
@@ -353,7 +350,7 @@ public class StandardPhysicsManager : UdonSharpBehaviour
                 balls_P[i] += deltaPos;
                 moved[i] = deltaPos != Vector3.zero;
 
-                ballsMoving |= stepOneBall(i, sn_pocketed, moved);
+                ballsMoving |= stepOneBall(i, ballIds, moved);
             }
         }
         table._EndPerf(table.PERF_PHYSICS_BALL);
@@ -371,21 +368,18 @@ public class StandardPhysicsManager : UdonSharpBehaviour
         bool canCueBallBounceOffCushion = balls_P[0].y < k_BALL_RADIUS;
 
         table._BeginPerf(table.PERF_PHYSICS_CUSHION);
-        ball_bit = 0x1U;
         // Run edge collision
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < ballIds.Length; i++)
         {
-            if (moved[i] && (ball_bit & sn_pocketed) == 0U && (i != 0 || canCueBallBounceOffCushion))
+            if (moved[i] && ballIds[i] != 0 && (i != 0 || canCueBallBounceOffCushion))
             {
                 _phy_ball_table_carom(i);
             }
-
-            ball_bit <<= 1;
         }
         table._EndPerf(table.PERF_PHYSICS_CUSHION);
 
         bool outOfBounds = false;
-        if ((sn_pocketed & 0x01u) == 0x00u)
+        if (ballIds[0] != 0)
         {
             if (Mathf.Abs(balls_P[0].x) > table.k_TABLE_WIDTH + 0.1 || Mathf.Abs(balls_P[0].z) > table.k_TABLE_HEIGHT + 0.1)
             {
@@ -400,7 +394,7 @@ public class StandardPhysicsManager : UdonSharpBehaviour
     // ( Since v0.2.0a ) Check if we can predict a collision before move update happens to improve accuracy
     // This function predicts if the cue ball is about to hit another ball, and if it is, it teleports it
     // to the surface of that ball, instead of letting it clip into that ball
-    private Vector3 calculateDeltaPosition(uint sn_pocketed)
+    private Vector3 calculateDeltaPosition(byte[] ballIds)
     {
         // Get what will be the next position
         Vector3 originalDelta = balls_V[0] * k_FIXED_TIME_STEP;
@@ -416,13 +410,9 @@ public class StandardPhysicsManager : UdonSharpBehaviour
         float mins = 0;
 
         // Loop balls look for collisions
-        uint ball_bit = 0x1U;
-
         for (int i = 1; i < 16; i++)
         {
-            ball_bit <<= 1;
-
-            if ((ball_bit & sn_pocketed) != 0U)
+            if (ballIds[i] == 0)
                 continue;
 
             h = balls_P[i] - balls_P[0];
@@ -457,7 +447,7 @@ public class StandardPhysicsManager : UdonSharpBehaviour
     }
 
     // Advance simulation 1 step for ball id
-    private bool stepOneBall(int id, uint sn_pocketed, bool[] moved)
+    private bool stepOneBall(int id, byte[] ballIds, bool[] moved)
     {
         GameObject g_ball_current = balls[id];
 
@@ -472,12 +462,11 @@ public class StandardPhysicsManager : UdonSharpBehaviour
         moved[id] |= isBallMoving;
 
         // check for collisions. a non-moving ball might be collided by a moving one
-        uint ball_bit = 0x1U << id;
-        for (int i = id + 1; i < 16; i++)
+        byte ballId = ballIds[id];
+        for (int i = id + 1; i < ballIds.Length; i++)
         {
-            ball_bit <<= 1;
-
-            if ((ball_bit & sn_pocketed) != 0U)
+            byte thisBallId = ballIds[i];
+            if (thisBallId == 0)
                 continue;
 
             Vector3 delta = balls_P[i] - balls_P[id];
@@ -490,7 +479,7 @@ public class StandardPhysicsManager : UdonSharpBehaviour
 
                 // The balls are touching!
                 // If they are same number (fruit), they merge
-                if (table.isSuika12 && i == id + 1 && (0x1u << id) - 2u == (sn_pocketed & 0x1FFEu))
+                if (ballId == thisBallId)
                 {
                     // static resolution - merged ball is the average position
                     balls_P[i] = (balls_P[i] + balls_P[id]) * 0.5f;
