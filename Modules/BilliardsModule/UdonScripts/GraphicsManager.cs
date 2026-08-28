@@ -561,7 +561,7 @@ int uniform_cue_colour;
         {
             // uh... need to change this to account for more than 16 balls
             for (int i = 0; i < numBalls; i++)
-                table.balls[i].SetActive(false);
+                table.balls[i].SetActive(true);
         }
         else if (table.isSuika12)
         {
